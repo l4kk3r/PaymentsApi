@@ -1,0 +1,21 @@
+{
+  "name": "PaymentsApi",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:apeTim/PaymentsApi.git",
+  "author": "Tim <apetimx@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start:dev": "tsnd -r dotenv/config src/index.ts"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^18.16.0",
+    "dotenv": "^16.0.3",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
