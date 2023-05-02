@@ -8,6 +8,7 @@ import errorHandlerMiddleware from "./middlewares/ErrorHandlerMiddleware";
 let server = new InversifyExpressServer(container);
 server.setConfig((app) => {
     app.use(express.json())
+    app.use(express.urlencoded())
 })
 
 server.setErrorConfig((app) => {

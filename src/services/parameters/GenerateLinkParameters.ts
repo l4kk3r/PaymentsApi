@@ -1,7 +1,7 @@
 export default interface GenerateLinkParameters {
     service: string
     paymentMethod: string
-    currency: string
     amount: number
+    currency: string
     payload: string
 }

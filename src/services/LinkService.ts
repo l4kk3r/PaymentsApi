@@ -1,26 +1,33 @@
-import PaymentProvider from "./interfaces/PaymentProvider";
+import IPaymentService from "./interfaces/IPaymentService";
 import {inject, injectable} from "inversify";
 import {TYPES} from "../di/types";
 import GenerateLinkParameters from "./parameters/GenerateLinkParameters";
 import DomainError from "../errors/DomainError";
+import IYooMoneyService from "./interfaces/IYooMoneyService";
+import ICryptoService from "./interfaces/ICryptoService";
+import ILinkService from "./interfaces/ILinkService";
+import ICardService from "./interfaces/ICardService";
 
 @injectable()
-export default class LinkService {
-    @inject(TYPES.CryptoCloudService) private _cryptoCloudService: PaymentProvider
-    @inject(TYPES.YooMoneyService) private _yoomoneyService: PaymentProvider
+export default class LinkService implements ILinkService {
+    @inject(TYPES.ICardService) private _cardService: ICardService
+    @inject(TYPES.ICryptoService) private _cryptoCloudService: ICryptoService
+    @inject(TYPES.IYooMoneyService) private _yoomoneyService: IYooMoneyService
 
-    public generate(generateParameters: GenerateLinkParameters): string {
-        const paymentMethod = generateParameters.paymentMethod
+    async generate(parameters: GenerateLinkParameters): Promise<string> {
+        const paymentMethod = parameters.paymentMethod
 
-        let provider: PaymentProvider;
-        if (paymentMethod == "yoomoney") {
-            provider = this._yoomoneyService
-        } else if (paymentMethod == "crypto_cloud") {
+        let provider: IPaymentService;
+        if (paymentMethod == "card") {
+            provider = this._cardService
+        } else if (paymentMethod == "crypto") {
             provider = this._cryptoCloudService
+        } else if (paymentMethod == "yoomoney") {
+            provider = this._yoomoneyService
         } else {
             throw new DomainError("Incorrect payment method")
         }
 
-        return provider.generateLink(generateParameters)
+        return await provider.generateLink(parameters)
     }
 }
