@@ -23,6 +23,6 @@ container.bind<ICardService>(TYPES.ICardService).to(YoomoneyService)
 container.bind<ICryptoCloudService>(TYPES.ICryptoCloudService).to(CryptoCloudService)
 container.bind<IYooMoneyService>(TYPES.IYooMoneyService).to(YoomoneyService)
 container.bind<ILinkService>(TYPES.ILinkService).to(LinkService)
-container.bind<IPaymentRepository>(TYPES.IPaymentRepository).to(PaymentRepository)
+container.bind<IPaymentRepository>(TYPES.IPaymentRepository).to(PaymentRepository).inSingletonScope()
 
 export { container }

@@ -2,6 +2,7 @@ import IPaymentRepository from "./interfaces/IPaymentRepository";
 import Payment from "../models/Payment";
 import amqp, {Channel} from "amqplib";
 import {injectable} from "inversify";
+import {Console} from "inspector";
 
 @injectable()
 export default class PaymentRepository implements IPaymentRepository {
@@ -11,7 +12,10 @@ export default class PaymentRepository implements IPaymentRepository {
         const url = process.env.RABBITMQ_URL
 
         this.createChannel(url)
-            .then(channel => this.channel = channel)
+            .then(channel => {
+                console.log("RabbitMQ connected")
+                this.channel = channel
+            })
     }
 
     notify(service: string, payment: Payment): void {
