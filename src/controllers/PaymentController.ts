@@ -39,6 +39,8 @@ export class PaymentController implements Controller {
         @response() response: Response,
         @next() next)
     {
+        console.log('Received payment request')
+
         const {operation_id, amount, currency, label, sha1_hash, datetime, sender, codepro, notification_type} = request.body
 
         const parameters = `${notification_type}&${operation_id}&${amount}&${currency}&${datetime}&${sender}&${codepro}&notification_secret&${label}`

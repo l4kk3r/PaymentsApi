@@ -19,6 +19,8 @@ export default class PaymentRepository implements IPaymentRepository {
     }
 
     notify(service: string, payment: Payment): void {
+        console.log('Notifying payment request')
+
         const queue = `${service}_payments`
         const messageBuffer = Buffer.from(JSON.stringify(payment))
 

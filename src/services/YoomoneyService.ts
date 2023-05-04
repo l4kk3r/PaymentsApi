@@ -38,11 +38,14 @@ export default class YoomoneyService implements IYooMoneyService, ICardService {
     }
 
     async confirmPayment(parameters: ConfirmPaymentParameters): Promise<void> {
+        console.log('Confirming payment request')
         const { uuid, amount, currency, payload, verification } = parameters
 
         const verified = this.verify(verification)
         if (!verified)
             throw new DomainError("Incorrect verification")
+
+        console.log('Verified payment request')
 
         const payloadData = payload.split(':')
         const service = payloadData.shift()
@@ -53,6 +56,7 @@ export default class YoomoneyService implements IYooMoneyService, ICardService {
     }
 
     private verify(verification: string): boolean {
+
         const values = verification.split('&')
 
         const hash = values.pop()
@@ -60,6 +64,8 @@ export default class YoomoneyService implements IYooMoneyService, ICardService {
 
         parameters = parameters.replace('notification_secret', this.verificationToken)
         const parametersHash = this.hash(parameters)
+
+        console.log(`Verify result ${parametersHash == hash}`)
 
         return parametersHash == hash
     }
