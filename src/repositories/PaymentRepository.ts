@@ -24,6 +24,8 @@ export default class PaymentRepository implements IPaymentRepository {
         const queue = `${service}_payments`
         const messageBuffer = Buffer.from(JSON.stringify(payment))
 
+        console.log(JSON.stringify(payment))
+
         this.channel.sendToQueue(queue, messageBuffer)
     }
 
