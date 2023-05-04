@@ -50,7 +50,9 @@ export default class CryptoCloudService implements ICryptoCloudService, ICryptoS
         if (!verified)
             throw new DomainError("Incorrect verification")
 
-        const [service, paymentPayload] = payload.split(':')
+        const payloadData = payload.split(':')
+        const service = payloadData.shift()
+        const paymentPayload = payloadData.join(':')
         const payment = new Payment(amount, currency, paymentPayload)
 
         this._paymentRepository.notify(service, payment)
