@@ -31,6 +31,8 @@ export class PaymentController implements Controller {
         } as ConfirmPaymentParameters
 
         await this._cryptoCloudService.confirmPayment(confirmPaymentParameters)
+
+        response.send()
     }
 
     @httpPost('/confirm/yoomoney')
@@ -54,5 +56,7 @@ export class PaymentController implements Controller {
         } as ConfirmPaymentParameters
 
         await this._yoomoneyService.confirmPayment(confirmPaymentParameters)
+
+        response.send()
     }
 }
