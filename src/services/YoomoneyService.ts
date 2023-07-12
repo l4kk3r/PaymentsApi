@@ -10,20 +10,22 @@ import Payment from "../models/Payment";
 import {TYPES} from "../di/types";
 import IPaymentRepository from "../repositories/interfaces/IPaymentRepository";
 import {createHash} from "crypto";
+import Dict = NodeJS.Dict;
 
 @injectable()
 export default class YoomoneyService implements IYooMoneyService, ICardService {
     private readonly baseUrl: string
-    private readonly verificationToken: string
+    private readonly verificationTokens: string[]
+    private readonly walletIds: {}
 
     @inject(TYPES.IPaymentRepository) private _paymentRepository: IPaymentRepository
 
     constructor() {
         const baseUrl = process.env.YOOMONEY_BASE_URL
-        const walletId = process.env.YOOMONEY_WALLET_ID
 
-        this.baseUrl = this.createFullBaseUrl(baseUrl, walletId)
-        this.verificationToken = process.env.YOOMONEY_VERIFICATION_TOKEN
+        this.baseUrl = this.createFullBaseUrl(baseUrl)
+        this.walletIds = JSON.parse(process.env.YOOMONEY_WALLET_IDS)
+        this.verificationTokens = JSON.parse(process.env.YOOMONEY_VERIFICATION_TOKEN)
     }
 
     async generateLink(generateParameters: GenerateLinkParameters): Promise<string> {
@@ -32,6 +34,7 @@ export default class YoomoneyService implements IYooMoneyService, ICardService {
         const fullPayload = `${service}:${payload}`
 
         return this.baseUrl
+            .replace('%WALLET%', this.walletIds[service])
             .replace('%TYPE%', type)
             .replace('%SUM%', amount.toString())
             .replace('%PAYLOAD%', fullPayload)
@@ -53,12 +56,22 @@ export default class YoomoneyService implements IYooMoneyService, ICardService {
     }
 
     private verify(verification: string): boolean {
+        for (const verificationToken of this.verificationTokens) {
+            if (this.verifyToken(verification, verificationToken)) {
+                return true
+            }
+        }
+
+        return false;
+    }
+
+    private verifyToken(verification: string, verificationToken: string): boolean {
         const values = verification.split('&')
 
         const hash = values.pop()
         let parameters = values.join('&')
 
-        parameters = parameters.replace('notification_secret', this.verificationToken)
+        parameters = parameters.replace('notification_secret', verificationToken)
         const parametersHash = this.hash(parameters)
 
         return parametersHash == hash
@@ -70,7 +83,7 @@ export default class YoomoneyService implements IYooMoneyService, ICardService {
             .digest('hex')
     }
 
-    private createFullBaseUrl(baseURL: string, walletId: string): string {
-        return `${baseURL}?receiver=${walletId}&quickpay-form=shop&paymentType=%TYPE%&sum=%SUM%&label=%PAYLOAD%`
+    private createFullBaseUrl(baseURL: string): string {
+        return `${baseURL}?receiver=%WALLET%&quickpay-form=shop&paymentType=%TYPE%&sum=%SUM%&label=%PAYLOAD%`
     }
 }
