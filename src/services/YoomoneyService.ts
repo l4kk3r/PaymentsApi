@@ -25,7 +25,7 @@ export default class YoomoneyService implements IYooMoneyService, ICardService {
 
         this.baseUrl = this.createFullBaseUrl(baseUrl)
         this.walletIds = JSON.parse(process.env.YOOMONEY_WALLET_IDS)
-        this.verificationTokens = JSON.parse(process.env.YOOMONEY_VERIFICATION_TOKEN)
+        this.verificationTokens = JSON.parse(process.env.YOOMONEY_VERIFICATION_TOKENS)
     }
 
     async generateLink(generateParameters: GenerateLinkParameters): Promise<string> {
