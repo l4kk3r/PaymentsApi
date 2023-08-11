@@ -42,21 +42,28 @@ export class PaymentController implements Controller {
         @next() next)
     {
         console.log('Received payment request')
-
         const {operation_id, amount, currency, label, sha1_hash, datetime, sender, codepro, notification_type} = request.body
 
-        const parameters = `${notification_type}&${operation_id}&${amount}&${currency}&${datetime}&${sender}&${codepro}&notification_secret&${label}`
-        const verification = `${parameters}&${sha1_hash}`
-        const confirmPaymentParameters = {
-            uuid: operation_id,
-            amount,
-            payload: label,
-            currency: 'RUB',
-            verification
-        } as ConfirmPaymentParameters
+        try {
+            const parameters = `${notification_type}&${operation_id}&${amount}&${currency}&${datetime}&${sender}&${codepro}&notification_secret&${label}`
+            const verification = `${parameters}&${sha1_hash}`
+            const confirmPaymentParameters = {
+                uuid: operation_id,
+                amount,
+                payload: label,
+                currency: 'RUB',
+                verification
+            } as ConfirmPaymentParameters
 
-        await this._yoomoneyService.confirmPayment(confirmPaymentParameters)
+            await this._yoomoneyService.confirmPayment(confirmPaymentParameters)
 
-        response.send()
+            console.log(`Payment request #${operation_id} is verified`)
+
+            response.send()
+        } catch (e) {
+            console.log(`Payment request #${operation_id} verification FAILED`)
+
+            response.status(500).send()
+        }
     }
 }

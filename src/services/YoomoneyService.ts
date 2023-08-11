@@ -1,16 +1,13 @@
-import IPaymentService from "./interfaces/IPaymentService";
 import {inject, injectable} from "inversify";
 import GenerateLinkParameters from "./parameters/GenerateLinkParameters";
 import ConfirmPaymentParameters from "./parameters/ConfirmPaymentParameters";
 import ICardService from "./interfaces/ICardService";
 import IYooMoneyService from "./interfaces/IYooMoneyService";
-import axios, {AxiosInstance} from "axios/index";
 import DomainError from "../errors/DomainError";
 import Payment from "../models/Payment";
 import {TYPES} from "../di/types";
 import IPaymentRepository from "../repositories/interfaces/IPaymentRepository";
 import {createHash} from "crypto";
-import Dict = NodeJS.Dict;
 
 @injectable()
 export default class YoomoneyService implements IYooMoneyService, ICardService {
