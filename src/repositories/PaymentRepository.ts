@@ -6,6 +6,9 @@ import {Console} from "inspector";
 
 @injectable()
 export default class PaymentRepository implements IPaymentRepository {
+    private ExchangeName = 'payments'
+    private ExchangeType = 'direct'
+
     private channel: Channel
 
     constructor() {
@@ -19,10 +22,8 @@ export default class PaymentRepository implements IPaymentRepository {
     }
 
     notify(service: string, payment: Payment): void {
-        const queue = `${service}_payments`
         const messageBuffer = Buffer.from(JSON.stringify(payment))
-
-        this.channel.sendToQueue(queue, messageBuffer)
+        this.channel.publish(this.ExchangeName, service, messageBuffer)
     }
 
     private async createChannel(url: string): Promise<Channel> {
@@ -31,9 +32,19 @@ export default class PaymentRepository implements IPaymentRepository {
 
         const services = JSON.parse(process.env.SERVICES)
 
-        const asserts = services.map(service =>
-            channel.assertQueue(`${service}_payments`, { durable: true }))
-        await Promise.all(asserts)
+        const dlqExchangeName = `${this.ExchangeName}_dlq`
+        await channel.assertExchange(this.ExchangeName, this.ExchangeType)
+        await channel.assertExchange(dlqExchangeName, this.ExchangeType)
+
+        for (let service of services) {
+            const queueName = `${service}_payments`
+            const dlqQueueName = `${queueName}_dlq`
+
+            await channel.assertQueue(queueName, { durable: true, deadLetterExchange: dlqExchangeName })
+            await channel.assertQueue(dlqQueueName, { durable: true, autoDelete: false })
+            await channel.bindQueue(queueName, this.ExchangeName, service)
+            await channel.bindQueue(dlqQueueName, dlqExchangeName, service)
+        }
 
         return channel
     }
