@@ -16,6 +16,7 @@ const container = new Container()
 
 import "../controllers/LinkController";
 import "../controllers/PaymentController"
+import "../controllers/StatusController"
 import ICryptoCloudService from "../services/interfaces/ICryptoCloudService";
 
 container.bind<ICryptoService>(TYPES.ICryptoService).to(CryptoCloudService)
