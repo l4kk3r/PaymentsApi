@@ -12,18 +12,30 @@ import ICardService from "../services/interfaces/ICardService";
 import IYooMoneyService from "../services/interfaces/IYooMoneyService";
 import ILinkService from "../services/interfaces/ILinkService";
 
-const container = new Container()
-
 import "../controllers/LinkController";
 import "../controllers/PaymentController"
 import "../controllers/StatusController"
+import "../controllers/KeyController"
+
 import ICryptoCloudService from "../services/interfaces/ICryptoCloudService";
+import databasePool from "./databasePool";
+import {Pool} from "pg";
+import IRepository from "../repositories/interfaces/IRepository";
+import Repository from "../repositories/Repository";
+import IKeyService from "../services/interfaces/IKeyService";
+import KeyService from "../services/KeyService";
+
+const container = new Container()
+
+container.bind<Pool>(TYPES.DatabasePool).toConstantValue(databasePool)
 
 container.bind<ICryptoService>(TYPES.ICryptoService).to(CryptoCloudService)
 container.bind<ICardService>(TYPES.ICardService).to(YoomoneyService)
 container.bind<ICryptoCloudService>(TYPES.ICryptoCloudService).to(CryptoCloudService)
 container.bind<IYooMoneyService>(TYPES.IYooMoneyService).to(YoomoneyService)
 container.bind<ILinkService>(TYPES.ILinkService).to(LinkService)
+container.bind<IKeyService>(TYPES.IKeyService).to(KeyService)
 container.bind<IPaymentRepository>(TYPES.IPaymentRepository).to(PaymentRepository).inSingletonScope()
+container.bind<IRepository>(TYPES.IRepository).to(Repository).inSingletonScope();
 
 export { container }
