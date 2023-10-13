@@ -5,6 +5,12 @@ import cors from 'cors';
 import {InversifyExpressServer} from "inversify-express-utils";
 import {container} from "./di/inversify.config";
 import errorHandlerMiddleware from "./middlewares/ErrorHandlerMiddleware";
+import * as https from "https";
+
+/*
+Currently VPN servers do not have SSL certificates
+ */
+https.globalAgent.options.rejectUnauthorized = false;
 
 let server = new InversifyExpressServer(container);
 server.setConfig((app) => {

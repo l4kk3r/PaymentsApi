@@ -5,8 +5,9 @@ const TYPES = {
     ICryptoCloudService: Symbol.for("ICryptoCloudService"),
     IYooMoneyService: Symbol.for("IYooMoneyService"),
     ILinkService: Symbol.for("ILinkService"),
-    IKeyService: Symbol.for("IKeyService"),
     IPaymentRepository: Symbol.for("IPaymentRepository"),
+    IServerService: Symbol.for("IServerService"),
+    IConfigService: Symbol.for("IConfigService"),
     IRepository: Symbol.for("IRepository")
 }
 

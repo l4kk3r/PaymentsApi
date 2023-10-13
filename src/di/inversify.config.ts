@@ -22,8 +22,10 @@ import databasePool from "./databasePool";
 import {Pool} from "pg";
 import IRepository from "../repositories/interfaces/IRepository";
 import Repository from "../repositories/Repository";
-import IKeyService from "../services/interfaces/IKeyService";
-import KeyService from "../services/KeyService";
+import IServerService from "../services/interfaces/IServerService";
+import ServerService from "../services/ServerService";
+import IConfigService from "../services/interfaces/IConfigService";
+import ConfigService from "../services/ConfigService";
 
 const container = new Container()
 
@@ -34,7 +36,8 @@ container.bind<ICardService>(TYPES.ICardService).to(YoomoneyService)
 container.bind<ICryptoCloudService>(TYPES.ICryptoCloudService).to(CryptoCloudService)
 container.bind<IYooMoneyService>(TYPES.IYooMoneyService).to(YoomoneyService)
 container.bind<ILinkService>(TYPES.ILinkService).to(LinkService)
-container.bind<IKeyService>(TYPES.IKeyService).to(KeyService)
+container.bind<IServerService>(TYPES.IServerService).to(ServerService)
+container.bind<IConfigService>(TYPES.IConfigService).to(ConfigService)
 container.bind<IPaymentRepository>(TYPES.IPaymentRepository).to(PaymentRepository).inSingletonScope()
 container.bind<IRepository>(TYPES.IRepository).to(Repository).inSingletonScope();
 
