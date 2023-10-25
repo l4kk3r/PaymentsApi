@@ -26,15 +26,18 @@ import IServerService from "../services/interfaces/IServerService";
 import ServerService from "../services/ServerService";
 import IConfigService from "../services/interfaces/IConfigService";
 import ConfigService from "../services/ConfigService";
+import IYookassaService from "../services/interfaces/IYookassaService";
+import YookassaService from "../services/YookassaService";
 
 const container = new Container()
 
 container.bind<Pool>(TYPES.DatabasePool).toConstantValue(databasePool)
 
 container.bind<ICryptoService>(TYPES.ICryptoService).to(CryptoCloudService)
-container.bind<ICardService>(TYPES.ICardService).to(YoomoneyService)
+container.bind<ICardService>(TYPES.ICardService).to(YookassaService)
 container.bind<ICryptoCloudService>(TYPES.ICryptoCloudService).to(CryptoCloudService)
-container.bind<IYooMoneyService>(TYPES.IYooMoneyService).to(YoomoneyService)
+container.bind<IYooMoneyService>(TYPES.IYooMoneyService).to(YookassaService)
+container.bind<IYookassaService>(TYPES.IYookassaService).to(YookassaService)
 container.bind<ILinkService>(TYPES.ILinkService).to(LinkService)
 container.bind<IServerService>(TYPES.IServerService).to(ServerService)
 container.bind<IConfigService>(TYPES.IConfigService).to(ConfigService)

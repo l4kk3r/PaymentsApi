@@ -1,18 +1,28 @@
 import {request, response, next, Controller, controller, httpPost} from "inversify-express-utils";
 import {inject} from "inversify";
 import {TYPES} from "../di/types";
-import {NextFunction, Response} from "express";
+import {NextFunction, Request, Response} from "express";
 import ConfirmCryptoCloudPaymentRequest from "../requests/ConfirmCryptoCloudPaymentRequest";
 import ConfirmPaymentParameters from "../services/parameters/ConfirmPaymentParameters";
 import ConfirmYoomoneyPaymentRequest from "../requests/ConfirmYoomoneyPaymentRequest";
 import IYooMoneyService from "../services/interfaces/IYooMoneyService";
 import ICryptoCloudService from "../services/interfaces/ICryptoCloudService";
+import ConfirmYookassaPaymentRequest from "../requests/ConfirmYookassaPaymentRequest";
+import IYookassaService from "../services/interfaces/IYookassaService";
 
 
 @controller('/payment')
 export class PaymentController implements Controller {
     @inject(TYPES.ICryptoCloudService) private _cryptoCloudService: ICryptoCloudService
-    @inject(TYPES.IYooMoneyService) private _yoomoneyService: IYooMoneyService
+    @inject(TYPES.IYookassaService) private _yookassaService: IYookassaService
+
+    @httpPost('')
+    private async method(        @request() request: Request,
+                                 @response() response: Response,
+                                 @next() next: NextFunction) {
+        var requestBody = request;
+        response.send()
+    }
 
     @httpPost('/confirm/crypto_cloud')
     private async confirmCryptoCloud(
@@ -35,6 +45,41 @@ export class PaymentController implements Controller {
         response.send()
     }
 
+    @httpPost('/confirm/yookassa')
+    private async confirmYookassa(
+        @request() request: ConfirmYookassaPaymentRequest,
+        @response() response: Response,
+        @next() next)
+    {
+        const data = request.body.object
+        if (request.body.event != 'payment.succeeded')
+            return
+
+        console.log('Received payment request')
+
+
+        try {
+            const confirmPaymentParameters = {
+                uuid: data.id,
+                amount: data.amount.value,
+                payload: data.metadata.payload,
+                currency: data.amount.currency,
+                verification: request.ip
+            } as ConfirmPaymentParameters
+
+            await this._yookassaService.confirmPayment(confirmPaymentParameters)
+
+            console.log(`Payment request #${data.id} is verified, ip: ${request.ip}`)
+
+            response.send()
+        } catch (e) {
+            console.log(`Payment request #${data.id} verification FAILED, ip: ${request.ip}`)
+
+            response.status(500).send()
+        }
+    }
+
+    /*
     @httpPost('/confirm/yoomoney')
     private async confirmYoomoney(
         @request() request: ConfirmYoomoneyPaymentRequest,
@@ -65,5 +110,5 @@ export class PaymentController implements Controller {
 
             response.status(500).send()
         }
-    }
+    } */
 }
