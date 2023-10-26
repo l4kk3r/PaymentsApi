@@ -60,6 +60,10 @@ export default class YookassaService implements IYookassaService {
             metadata: {
                 payload: fullPayload
             },
+            "payment_method_data": {
+                "type": "bank_card"
+            },
+            "save_payment_method": "true",
             confirmation: {
                 type: 'redirect',
                 return_url: this.RETURN_URL
