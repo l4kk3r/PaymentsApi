@@ -58,7 +58,7 @@ export default class YookassaService implements IYookassaService {
                 value: amount
             },
             metadata: {
-                payload
+                payload: fullPayload
             },
             confirmation: {
                 type: 'redirect',
