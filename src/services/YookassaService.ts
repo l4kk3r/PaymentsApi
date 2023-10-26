@@ -5,7 +5,6 @@ import 'axios'
 import axios, {AxiosInstance} from "axios";
 import {inject, injectable} from "inversify";
 import {randomUUID} from "crypto";
-import DomainError from "../errors/DomainError";
 import Payment from "../models/Payment";
 import {TYPES} from "../di/types";
 import IPaymentRepository from "../repositories/interfaces/IPaymentRepository";
@@ -60,10 +59,6 @@ export default class YookassaService implements IYookassaService {
             metadata: {
                 payload: fullPayload
             },
-            "payment_method_data": {
-                "type": "bank_card"
-            },
-            "save_payment_method": "true",
             confirmation: {
                 type: 'redirect',
                 return_url: this.RETURN_URL
