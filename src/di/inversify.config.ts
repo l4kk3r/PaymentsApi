@@ -28,6 +28,8 @@ import IConfigService from "../services/interfaces/IConfigService";
 import ConfigService from "../services/ConfigService";
 import IYookassaService from "../services/interfaces/IYookassaService";
 import YookassaService from "../services/YookassaService";
+import IEmailService from "../services/interfaces/IEmailService";
+import NodemailerService from "../services/NodemailerService";
 
 const container = new Container()
 
@@ -42,6 +44,7 @@ container.bind<ILinkService>(TYPES.ILinkService).to(LinkService)
 container.bind<IServerService>(TYPES.IServerService).to(ServerService)
 container.bind<IConfigService>(TYPES.IConfigService).to(ConfigService)
 container.bind<IPaymentRepository>(TYPES.IPaymentRepository).to(PaymentRepository).inSingletonScope()
-container.bind<IRepository>(TYPES.IRepository).to(Repository).inSingletonScope();
+container.bind<IRepository>(TYPES.IRepository).to(Repository).inSingletonScope()
+container.bind<IEmailService>(TYPES.IEmailService).to(NodemailerService).inSingletonScope()
 
 export { container }

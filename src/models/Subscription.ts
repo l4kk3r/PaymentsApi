@@ -2,12 +2,11 @@ import {DateTime} from "luxon";
 
 export default class Subscription {
     constructor (
-        public readonly id: number,
+        public id: number,
         public readonly userId: number,
-        public readonly planId: string,
-        public readonly configId: number,
+        public planId: string,
         public readonly startAt: DateTime,
-        public readonly endAt: DateTime,
+        public endAt: DateTime,
         public readonly isTest: boolean,
         public readonly identifier: string) { }
 

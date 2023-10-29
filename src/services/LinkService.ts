@@ -58,7 +58,7 @@ export default class LinkService implements ILinkService {
             await this._repository.createUser(user)
         }
 
-        const payment = new Payment(plan.price, user.id, user.id, planId, 'new')
+        const payment = new Payment(0, plan.price, user.id, user.id, planId, 'new')
         await this._repository.createPayment(payment)
 
         const generateParameters = {

@@ -47,7 +47,7 @@ export default class YoomoneyService implements IYooMoneyService, ICardService {
         const payloadData = payload.split(':')
         const service = payloadData.shift()
         const paymentPayload = payloadData.join(':')
-        const payment = new PaymentMessage(amount, currency, paymentPayload)
+        const payment = new PaymentMessage(amount, currency)
 
         this._paymentRepository.notify(service, payment)
     }

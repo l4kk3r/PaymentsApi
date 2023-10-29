@@ -1,16 +1,15 @@
 import {DateTime} from "luxon";
 
 export default class Payment {
-    public id: number
-    
     constructor(
+        public id: number,
         public readonly amount: number,
-        public readonly user_id: number,
-        public readonly entity_id: number,
-        public readonly plan_id: string,
+        public readonly userId: number,
+        public readonly entityId: number,
+        public readonly planId: string,
         public readonly type: string,
-        public readonly status?: string,
-        public readonly created_at?: DateTime,
-        public readonly paid_at?: DateTime
+        public status: string = 'created',
+        public readonly createdAt?: DateTime,
+        public paidAt?: DateTime
     ) { }
 }

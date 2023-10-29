@@ -9,7 +9,8 @@ const TYPES = {
     IPaymentRepository: Symbol.for("IPaymentRepository"),
     IServerService: Symbol.for("IServerService"),
     IConfigService: Symbol.for("IConfigService"),
-    IRepository: Symbol.for("IRepository")
+    IRepository: Symbol.for("IRepository"),
+    IEmailService: Symbol.for("IEmailService")
 }
 
 export { TYPES };

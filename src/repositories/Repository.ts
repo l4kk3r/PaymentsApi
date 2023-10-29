@@ -7,6 +7,8 @@ import Subscription from "../models/Subscription";
 import {DateTime} from "luxon";
 import User from "../models/User";
 import Payment from "../models/Payment";
+import {type} from "os";
+import {config} from "dotenv";
 
 @injectable()
 export default class Repository implements IRepository {
@@ -21,21 +23,21 @@ export default class Repository implements IRepository {
     }
 
     async createUser(user: User): Promise<void> {
-        const { telegram_id, username, source, email, ref_id } = user
+        const { telegramId, username, source, email, refId } = user
 
         const result = await this._dbPool.query(
             'INSERT INTO users (telegram_id, username, source, email, ref_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [telegram_id, username, source, email, ref_id]
+            [telegramId, username, source, email, refId]
         )
         user.id = result.rows[0].id as number
     }
 
     async createPayment(payment: Payment): Promise<void> {
-        const { amount, user_id, entity_id, plan_id, type } = payment
+        const { amount, userId, entityId, planId, type } = payment
 
         const result = await this._dbPool.query(
             'INSERT INTO payments (amount, user_id, entity_id, plan_id, type) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [amount, user_id, entity_id, plan_id, type]
+            [amount, userId, entityId, planId, type]
         )
         payment.id = result.rows[0].id as number
     }
@@ -60,7 +62,7 @@ export default class Repository implements IRepository {
         const data = result.rows[0]
         if (!data) return null;
 
-        return new Subscription(data.id, data.user_id, data.plan_id, data.config_id, data.start_at, data.end_at, data.is_test, data.identifier);
+        return new Subscription(data.id, data.user_id, data.plan_id, data.start_at, data.end_at, data.is_test, data.identifier);
     }
 
     async getSubscriptionConfig(subscriptionId: number, serverIp: string): Promise<Config> {
@@ -101,5 +103,85 @@ export default class Repository implements IRepository {
             'UPDATE configs SET is_active=false WHERE id=$1',
             [id]
         )
+    }
+
+    async createSubscription(subscription: Subscription): Promise<void> {
+        const result = await this._dbPool.query(
+            'INSERT INTO subscriptions (user_id, plan_id, start_at, end_at, is_test, identifier) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+            [subscription.userId, subscription.planId, subscription.startAt.toSQL(), subscription.endAt.toSQL(), subscription.isTest, subscription.identifier]
+        )
+        subscription.id = Number(result.rows[0].id)
+    }
+
+    async emptyNotificationsBySubscriptionId(subscriptionId: number): Promise<void> {
+        await this._dbPool.query(
+            'UPDATE notifications SET data=jsonb_set(data, \'{last_notification_id}\', \'null\') WHERE data->\'subscription_id\'=$1',
+            [subscriptionId]
+        )
+    }
+
+    async getPaymentById(id: number): Promise<Payment> {
+        const result = await this._dbPool.query(
+            'SELECT * FROM payments WHERE id=$1',
+            [id]
+        )
+        const data = result.rows[0]
+
+        return data ? new Payment(
+            data.id,
+            data.amount,
+            data.user_id,
+            data.entity_id,
+            data.plan_id,
+            data.type,
+            data.static,
+            data.created_at,
+            data.paid_at
+        ) : null
+    }
+
+    async getSubscriptionById(id: number): Promise<Subscription> {
+        const result = await this._dbPool.query(
+            'SELECT * FROM subscriptions WHERE id=$1',
+            [id]
+        )
+        const data = result.rows[0]
+
+        return data ? new Subscription(
+            data.id,
+            data.user_id,
+            data.plan_id,
+            data.start_at,
+            data.end_at,
+            data.is_test,
+            data.identifier
+        ) : null
+    }
+
+    async getUserById(id: number): Promise<User> {
+        const result = await this._dbPool.query(
+            'SELECT * FROM users WHERE id=$1',
+            [id]
+        )
+        const data = result.rows[0]
+
+        return data ? new User(
+            data.id,
+            data.telegram_id,
+            data.username,
+            data.source,
+            data.email,
+            data.ref_id
+        ) : null
+    }
+
+    async updatePayment(payment: Payment): Promise<void> {
+        await this._dbPool.query('UPDATE payments SET status=$1, paid_at=$2 WHERE id=$3',
+            [payment.status, payment.paidAt, payment.id])
+    }
+
+    async updateSubscription(subscription: Subscription): Promise<void> {
+        await this._dbPool.query('UPDATE subscriptions SET end_at=$1, planId=$2 WHERE id=$3',
+            [subscription.endAt, subscription.planId, subscription.id])
     }
 }

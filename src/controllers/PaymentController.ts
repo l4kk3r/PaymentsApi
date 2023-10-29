@@ -2,14 +2,10 @@ import {request, response, next, Controller, controller, httpPost} from "inversi
 import {inject} from "inversify";
 import {TYPES} from "../di/types";
 import {NextFunction, Request, Response} from "express";
-import ConfirmCryptoCloudPaymentRequest from "../requests/ConfirmCryptoCloudPaymentRequest";
 import ConfirmPaymentParameters from "../services/parameters/ConfirmPaymentParameters";
-import ConfirmYoomoneyPaymentRequest from "../requests/ConfirmYoomoneyPaymentRequest";
-import IYooMoneyService from "../services/interfaces/IYooMoneyService";
 import ICryptoCloudService from "../services/interfaces/ICryptoCloudService";
 import ConfirmYookassaPaymentRequest from "../requests/ConfirmYookassaPaymentRequest";
 import IYookassaService from "../services/interfaces/IYookassaService";
-
 
 @controller('/payment')
 export class PaymentController implements Controller {
@@ -24,6 +20,7 @@ export class PaymentController implements Controller {
         response.send()
     }
 
+    /*
     @httpPost('/confirm/crypto_cloud')
     private async confirmCryptoCloud(
         @request() request: ConfirmCryptoCloudPaymentRequest,
@@ -43,7 +40,7 @@ export class PaymentController implements Controller {
         await this._cryptoCloudService.confirmPayment(confirmPaymentParameters)
 
         response.send()
-    }
+    } */
 
     @httpPost('/confirm/yookassa')
     private async confirmYookassa(
@@ -74,6 +71,7 @@ export class PaymentController implements Controller {
             response.send()
         } catch (e) {
             console.log(`Payment request #${data.id} verification FAILED, ip: ${request.ip}`)
+            console.log(e)
 
             response.status(500).send()
         }
