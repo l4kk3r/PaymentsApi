@@ -72,20 +72,16 @@ export default class YookassaService implements IYookassaService {
         const user = await this._repository.getUserById(payment.userId)
         let subscription: Subscription
         let paymentType = payment.type
-        try {
-            if (payment.type == PaymentType.New) {
+        if (payment.type == PaymentType.New) {
+            subscription = await this.createSubscription(payment.planId, user)
+        } else {
+            subscription = await this._repository.getSubscriptionById(payment.entityId)
+            if (this.isExpired(subscription)) {
+                paymentType = PaymentType.New
                 subscription = await this.createSubscription(payment.planId, user)
             } else {
-                subscription = await this._repository.getSubscriptionById(payment.entityId)
-                if (this.isExpired(subscription)) {
-                    paymentType = PaymentType.New
-                    subscription = await this.createSubscription(payment.planId, user)
-                } else {
-                    await this.renewSubscription(payment.planId, subscription)
-                }
+                await this.renewSubscription(payment.planId, subscription)
             }
-        } catch (e) {
-            console.log(e)
         }
 
         if (user.email != null) {
