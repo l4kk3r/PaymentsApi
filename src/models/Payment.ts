@@ -1,15 +1,16 @@
-export default class Payment {
-    amount: number
-    currency: string
-    payload: string
+import {DateTime} from "luxon";
 
+export default class Payment {
+    public id: number
+    
     constructor(
-        amount: number,
-        currency: string,
-        payload: string
-    ) {
-        this.amount = amount
-        this.currency = currency
-        this.payload = payload
-    }
+        public readonly amount: number,
+        public readonly user_id: number,
+        public readonly entity_id: number,
+        public readonly plan_id: string,
+        public readonly type: string,
+        public readonly status?: string,
+        public readonly created_at?: DateTime,
+        public readonly paid_at?: DateTime
+    ) { }
 }

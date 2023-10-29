@@ -1,5 +1,7 @@
 import Config from "../../models/Config";
 import Subscription from "../../models/Subscription";
+import User from "../../models/User";
+import Payment from "../../models/Payment";
 
 export default interface IRepository {
     getSubscriptionByIdentifier(identifier: string): Promise<Subscription>;
@@ -11,4 +13,10 @@ export default interface IRepository {
     getConfig(id: number): Promise<Config>
 
     deactivateConfig(id: number): Promise<void>
+
+    createUser(user: User): Promise<void>
+
+    createPayment(payment: Payment): Promise<void>
+
+    getUserByEmail(email: string): Promise<User>
 }

@@ -1,5 +1,5 @@
-import Payment from "../../models/Payment";
+import PaymentMessage from "../../models/PaymentMessage";
 
 export default interface IPaymentRepository {
-    notify(service: string, payment: Payment): void
+    notify(service: string, payment: PaymentMessage): void
 }

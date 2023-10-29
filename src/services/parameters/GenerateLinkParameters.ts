@@ -3,5 +3,6 @@ export default interface GenerateLinkParameters {
     paymentMethod: string
     amount: number
     currency: string
-    payload: string
+    payload: string,
+    returnUrl?: string
 }

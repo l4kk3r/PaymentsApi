@@ -5,7 +5,7 @@ import 'axios'
 import axios, {AxiosInstance} from "axios";
 import {inject, injectable} from "inversify";
 import {randomUUID} from "crypto";
-import Payment from "../models/Payment";
+import PaymentMessage from "../models/PaymentMessage";
 import {TYPES} from "../di/types";
 import IPaymentRepository from "../repositories/interfaces/IPaymentRepository";
 
@@ -42,13 +42,13 @@ export default class YookassaService implements IYookassaService {
         const payloadData = payload.split(':')
         const service = payloadData.shift()
         const paymentPayload = payloadData.join(':')
-        const payment = new Payment(amount, currency, paymentPayload)
+        const payment = new PaymentMessage(amount, currency, paymentPayload)
 
         this._paymentRepository.notify(service, payment)
     }
 
     async generateLink(generateParameters: GenerateLinkParameters): Promise<string> {
-        const {paymentMethod, amount, service, payload, currency} = generateParameters
+        const {paymentMethod, amount, service, payload, currency, returnUrl} = generateParameters
         const type = paymentMethod == 'card' ? 'AC' : 'PC'
         const fullPayload = `${service}:${payload}`
         const payment = {
@@ -61,7 +61,7 @@ export default class YookassaService implements IYookassaService {
             },
             confirmation: {
                 type: 'redirect',
-                return_url: this.RETURN_URL
+                return_url: returnUrl ?? this.RETURN_URL
             },
             capture: true
         }

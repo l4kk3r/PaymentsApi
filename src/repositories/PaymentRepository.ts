@@ -1,5 +1,5 @@
 import IPaymentRepository from "./interfaces/IPaymentRepository";
-import Payment from "../models/Payment";
+import PaymentMessage from "../models/PaymentMessage";
 import amqp, {Channel} from "amqplib";
 import {injectable} from "inversify";
 import {Console} from "inspector";
@@ -21,7 +21,7 @@ export default class PaymentRepository implements IPaymentRepository {
             })
     }
 
-    notify(service: string, payment: Payment): void {
+    notify(service: string, payment: PaymentMessage): void {
         const messageBuffer = Buffer.from(JSON.stringify(payment))
         this.channel.publish(this.ExchangeName, service, messageBuffer)
     }

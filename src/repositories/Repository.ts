@@ -1,10 +1,12 @@
 import IRepository from "./interfaces/IRepository";
 import Config from "../models/Config";
-import {inject, injectable} from "inversify";
+import {id, inject, injectable} from "inversify";
 import {TYPES} from "../di/types";
 import {Pool, types} from "pg";
 import Subscription from "../models/Subscription";
 import {DateTime} from "luxon";
+import User from "../models/User";
+import Payment from "../models/Payment";
 
 @injectable()
 export default class Repository implements IRepository {
@@ -13,9 +15,41 @@ export default class Repository implements IRepository {
     @inject(TYPES.DatabasePool) protected _dbPool: Pool
 
     constructor() {
-        types.setTypeParser(this.DateTimeWithoutTimestampParser, function(stringValue) {
-            return DateTime.fromSQL(stringValue, { zone: 'utc' });
+        types.setTypeParser(this.DateTimeWithoutTimestampParser, function (stringValue) {
+            return DateTime.fromSQL(stringValue, {zone: 'utc'});
         })
+    }
+
+    async createUser(user: User): Promise<void> {
+        const { telegram_id, username, source, email, ref_id } = user
+
+        const result = await this._dbPool.query(
+            'INSERT INTO users (telegram_id, username, source, email, ref_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [telegram_id, username, source, email, ref_id]
+        )
+        user.id = result.rows[0].id as number
+    }
+
+    async createPayment(payment: Payment): Promise<void> {
+        const { amount, user_id, entity_id, plan_id, type } = payment
+
+        const result = await this._dbPool.query(
+            'INSERT INTO payments (amount, user_id, entity_id, plan_id, type) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [amount, user_id, entity_id, plan_id, type]
+        )
+        payment.id = result.rows[0].id as number
+    }
+
+    async getUserByEmail(email: string): Promise<User> {
+        const result = await this._dbPool.query(
+            'SELECT * FROM users WHERE email=$1',
+            [email]
+        )
+
+        const data = result.rows[0]
+        if (!data) return null;
+
+        return new User(data.id, data.telegram_id, data.username, data.source, data.email, data.ref_id);
     }
 
     async getSubscriptionByIdentifier(identifier: string): Promise<Subscription> {

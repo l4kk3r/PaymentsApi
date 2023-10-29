@@ -7,6 +7,9 @@ import GenerateLinkParameters from "../services/parameters/GenerateLinkParameter
 import bodyValidatorMiddleware from "../middlewares/BodyValidatorMiddleware";
 import GenerateLinkRequestBodyValidator from "../validators/GenerateLinkRequestBodyValidator";
 import ILinkService from "../services/interfaces/ILinkService";
+import GenerateLinkFromEmailRequest from "../requests/GenerateLinkFromEmailRequest";
+import GenerateLinkFromEmailRequestBodyValidator from "../validators/GenerateLinkFromEmailRequestBodyValidator";
+import GenerateLinkFromEmailParameters from "../services/parameters/GenerateLinkFromEmailParameters";
 
 @controller('/link')
 export class LinkController implements Controller {
@@ -18,6 +21,16 @@ export class LinkController implements Controller {
         const generateParameters = {service, paymentMethod, amount, currency, payload} as GenerateLinkParameters
 
         const link = await this._linkService.generate(generateParameters)
+
+        response.json({ link })
+    }
+
+    @httpPost('/generate-from-email', bodyValidatorMiddleware(GenerateLinkFromEmailRequestBodyValidator))
+    private async generateFromEmail(@request() request: GenerateLinkFromEmailRequest, @response() response: Response, @next() next: NextFunction) {
+        const { service, email, paymentMethod, planId, returnUrl} = request.body
+        const generateParameters = { service, email, paymentMethod, planId, returnUrl } as GenerateLinkFromEmailParameters
+
+        const link = await this._linkService.generateFromEmail(generateParameters)
 
         response.json({ link })
     }

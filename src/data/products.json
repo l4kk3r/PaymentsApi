@@ -1,0 +1,50 @@
+[
+  {
+    "name": "OKVpn",
+    "id": "ok_vpn",
+    "plans": [
+      {
+        "name": "3 часа",
+        "id": "ok_vpn_3_hours",
+        "price": 0,
+        "duration": "P3H",
+        "show": false
+      },
+      {
+        "name": "1 день",
+        "id": "ok_vpn_1_day",
+        "price": 1,
+        "duration": "P1D",
+        "show": false
+      },
+      {
+        "name": "1 неделя",
+        "id": "ok_vpn_1_week",
+        "price": 0,
+        "duration": "P7D",
+        "show": false
+      },
+      {
+        "name": "1 месяц",
+        "id": "ok_vpn_1_month",
+        "price": 179,
+        "duration": "P30D",
+        "show": true
+      },
+      {
+        "name": "3 месяца",
+        "id": "ok_vpn_3_month",
+        "price": 479,
+        "duration": "P90D",
+        "show": true
+      },
+      {
+        "name": "12 месяцев",
+        "id": "ok_vpn_12_month",
+        "price": 1599,
+        "duration": "P365D",
+        "show": true
+      }
+    ]
+  }
+]

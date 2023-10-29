@@ -4,7 +4,7 @@ import ConfirmPaymentParameters from "./parameters/ConfirmPaymentParameters";
 import ICardService from "./interfaces/ICardService";
 import IYooMoneyService from "./interfaces/IYooMoneyService";
 import DomainError from "../errors/DomainError";
-import Payment from "../models/Payment";
+import PaymentMessage from "../models/PaymentMessage";
 import {TYPES} from "../di/types";
 import IPaymentRepository from "../repositories/interfaces/IPaymentRepository";
 import {createHash} from "crypto";
@@ -47,7 +47,7 @@ export default class YoomoneyService implements IYooMoneyService, ICardService {
         const payloadData = payload.split(':')
         const service = payloadData.shift()
         const paymentPayload = payloadData.join(':')
-        const payment = new Payment(amount, currency, paymentPayload)
+        const payment = new PaymentMessage(amount, currency, paymentPayload)
 
         this._paymentRepository.notify(service, payment)
     }

@@ -5,7 +5,7 @@ import axios, {AxiosInstance} from "axios";
 import ConfirmPaymentParameters from "./parameters/ConfirmPaymentParameters";
 import jwt, {Jwt, JwtPayload} from "jsonwebtoken";
 import DomainError from "../errors/DomainError";
-import Payment from "../models/Payment";
+import PaymentMessage from "../models/PaymentMessage";
 import {TYPES} from "../di/types";
 import IPaymentRepository from "../repositories/interfaces/IPaymentRepository";
 import ICryptoService from "./interfaces/ICryptoService";
@@ -53,7 +53,7 @@ export default class CryptoCloudService implements ICryptoCloudService, ICryptoS
         const payloadData = payload.split(':')
         const service = payloadData.shift()
         const paymentPayload = payloadData.join(':')
-        const payment = new Payment(amount, currency, paymentPayload)
+        const payment = new PaymentMessage(amount, currency, paymentPayload)
 
         this._paymentRepository.notify(service, payment)
     }
