@@ -181,7 +181,7 @@ export default class Repository implements IRepository {
     }
 
     async updateSubscription(subscription: Subscription): Promise<void> {
-        await this._dbPool.query('UPDATE subscriptions SET end_at=$1, planId=$2 WHERE id=$3',
+        await this._dbPool.query('UPDATE subscriptions SET end_at=$1, plan_id=$2 WHERE id=$3',
             [subscription.endAt, subscription.planId, subscription.id])
     }
 }
