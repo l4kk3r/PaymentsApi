@@ -36,7 +36,7 @@ export default class NodemailerService implements IEmailService {
             from: `OKVpn - лучший VPN <${this.emailLogin}>`,
             to: email,
             subject: "Доступ к подписке OKVpn",
-            text: `Спасибо за приобретение подписки на OKVpn! Активация нашего VPN займет всего пару минут.\n\nИнструкция по активации: \nВаш ключ доступа: ${GetSubscriptionConfig(subscription)}\n\nПриятного пользования! При возникновении любых проблем пишите в поддержку и мы с радостью ответим.`
+            text: `Спасибо за приобретение подписки на OKVpn! Активация нашего VPN займет всего пару минут\n\nИнструкция по активации: https://telegra.ph/Aktivaciya-OKVpn-08-07\nВаш ключ доступа: ${GetSubscriptionConfig(subscription)}\n\nПриятного пользования! При возникновении любых проблем обращайтесь в поддержку и мы с радостью ответим`
         }
 
         await this.transport.sendMail(message)

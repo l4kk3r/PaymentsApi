@@ -5,6 +5,7 @@
 
 # Environment variables
 .env
+tests/
 
 # User-specific files
 *.rsuser
