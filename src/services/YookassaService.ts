@@ -43,8 +43,7 @@ export default class YookassaService implements IYookassaService {
                 type: 'redirect',
                 return_url: returnUrl
             },
-            capture: true,
-            save_payment_method: true
+            capture: true
         }
 
         const result = await this.api.post("", payment, {
