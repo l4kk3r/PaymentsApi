@@ -5,16 +5,13 @@ import PaymentService from "../services/PaymentService";
 
 import MessageBroker from "../infrastructure/MessageBroker";
 import IMessageBroker from "../infrastructure/interfaces/IMessageBroker";
-import ICryptoService from "../services/interfaces/ICryptoService";
-import ICardService from "../services/interfaces/ICardService";
-import IYooMoneyService from "../services/interfaces/IYooMoneyService";
 import IPaymentService from "../services/interfaces/IPaymentService";
 
 import "../controllers/PaymentController";
 import "../controllers/BillingController"
 import "../controllers/KeyController"
+import "../controllers/StatusController"
 
-import ICryptoCloudService from "../services/interfaces/ICryptoCloudService";
 import databasePool from "./databasePool";
 import {Pool} from "pg";
 import IRepository from "../infrastructure/interfaces/IRepository";
