@@ -4,7 +4,6 @@
     "target": "es5",
     "lib": ["es6"],
     "types": [
-      "...",
       "reflect-metadata",
       "@types/jest",
       "@types/mocha"
@@ -19,6 +18,7 @@
     "resolveJsonModule": true,
   },
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "tests"
   ]
 }
