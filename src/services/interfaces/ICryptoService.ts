@@ -1,3 +1,3 @@
-import IPaymentService from "./IPaymentService";
+import IBillingService from "./IBillingService";
 
-export default interface ICryptoService extends IPaymentService {}
+export default interface ICryptoService extends IBillingService {}

@@ -1,112 +1,45 @@
-import {request, response, next, Controller, controller, httpPost} from "inversify-express-utils";
-import {inject} from "inversify";
+import {NextFunction, Response} from 'express';
+import GenerateLinkRequest from "../requests/GenerateLinkRequest";
 import {TYPES} from "../di/types";
-import {NextFunction, Request, Response} from "express";
-import ConfirmPaymentParameters from "../services/parameters/ConfirmPaymentParameters";
-import ICryptoCloudService from "../services/interfaces/ICryptoCloudService";
-import ConfirmYookassaPaymentRequest from "../requests/ConfirmYookassaPaymentRequest";
-import IYookassaService from "../services/interfaces/IYookassaService";
+import {request, response, controller, httpPost, Controller, next} from "inversify-express-utils";
+import {inject} from "inversify";
+import GenerateLinkParameters from "../services/parameters/GenerateLinkParameters";
+import bodyValidatorMiddleware from "../middlewares/BodyValidatorMiddleware";
+import GenerateLinkRequestBodyValidator from "../requests/validators/GenerateLinkRequestBodyValidator";
+import IPaymentService from "../services/interfaces/IPaymentService";
+import GenerateLinkFromEmailRequest from "../requests/GenerateLinkFromEmailRequest";
+import GenerateLinkFromEmailRequestBodyValidator from "../requests/validators/GenerateLinkFromEmailRequestBodyValidator";
+import GenerateLinkFromEmailParameters from "../services/parameters/GenerateLinkFromEmailParameters";
 
 @controller('/payment')
 export class PaymentController implements Controller {
-    @inject(TYPES.ICryptoCloudService) private _cryptoCloudService: ICryptoCloudService
-    @inject(TYPES.IYookassaService) private _yookassaService: IYookassaService
+    @inject(TYPES.PaymentService) private _paymentService: IPaymentService
 
-    @httpPost('')
-    private async method(        @request() request: Request,
-                                 @response() response: Response,
-                                 @next() next: NextFunction) {
-        var requestBody = request;
-        response.send()
+    @httpPost('/generate', bodyValidatorMiddleware(GenerateLinkRequestBodyValidator))
+    private async generate(
+        @request() request: GenerateLinkRequest,
+        @response() response: Response,
+        @next() next: NextFunction)
+    {
+        const { userId, planId, paymentMethod, subscriptionId, returnUrl } = request.body
+
+        const parameters = { userId, planId, paymentMethod, subscriptionId, returnUrl }
+        const result = await this._paymentService.generatePayment(parameters)
+
+        response.json(result)
     }
 
-    /*
-    @httpPost('/confirm/crypto_cloud')
-    private async confirmCryptoCloud(
-        @request() request: ConfirmCryptoCloudPaymentRequest,
+    @httpPost('/generate-from-email', bodyValidatorMiddleware(GenerateLinkFromEmailRequestBodyValidator))
+    private async generateFromEmail(
+        @request() request: GenerateLinkFromEmailRequest,
         @response() response: Response,
-        @next() next: NextFunction
-    )
+        @next() next: NextFunction)
     {
-        const {invoice_id, amount_crypto, currency, order_id, token} = request.body
-        const confirmPaymentParameters = {
-            uuid: invoice_id,
-            amount: amount_crypto,
-            currency,
-            payload: order_id,
-            verification: token
-        } as ConfirmPaymentParameters
+        const { planId, paymentMethod, email, returnUrl} = request.body
 
-        await this._cryptoCloudService.confirmPayment(confirmPaymentParameters)
+        const parameters = { planId, paymentMethod, email, returnUrl }
+        const link = await this._paymentService.generatePaymentFromEmail(parameters)
 
-        response.send()
-    } */
-
-    @httpPost('/confirm/yookassa')
-    private async confirmYookassa(
-        @request() request: ConfirmYookassaPaymentRequest,
-        @response() response: Response,
-        @next() next)
-    {
-        const data = request.body.object
-        if (request.body.event != 'payment.succeeded')
-            return
-
-        console.log('Received payment request')
-
-
-        try {
-            const confirmPaymentParameters = {
-                uuid: data.id,
-                amount: data.amount.value,
-                payload: data.metadata.payload,
-                currency: data.amount.currency,
-                verification: request.ip
-            } as ConfirmPaymentParameters
-
-            await this._yookassaService.confirmPayment(confirmPaymentParameters)
-
-            console.log(`Payment request #${data.id} is verified, ip: ${request.ip}`)
-
-            response.send()
-        } catch (e) {
-            console.log(`Payment request #${data.id} verification FAILED, ip: ${request.ip}`)
-            console.log(e)
-
-            response.status(500).send()
-        }
+        response.json({ link })
     }
-
-    /*
-    @httpPost('/confirm/yoomoney')
-    private async confirmYoomoney(
-        @request() request: ConfirmYoomoneyPaymentRequest,
-        @response() response: Response,
-        @next() next)
-    {
-        console.log('Received payment request')
-        const {operation_id, amount, currency, label, sha1_hash, datetime, sender, codepro, notification_type} = request.body
-
-        try {
-            const parameters = `${notification_type}&${operation_id}&${amount}&${currency}&${datetime}&${sender}&${codepro}&notification_secret&${label}`
-            const verification = `${parameters}&${sha1_hash}`
-            const confirmPaymentParameters = {
-                uuid: operation_id,
-                amount,
-                payload: label,
-                currency: 'RUB',
-                verification
-            } as ConfirmPaymentParameters
-
-            await this._yoomoneyService.confirmPayment(confirmPaymentParameters)
-
-            console.log(`Payment request #${operation_id} is verified`)
-
-            response.send()
-        } catch (e) {
-            console.log(`Payment request #${operation_id} verification FAILED`)
-
-            response.status(500).send()
-        }
-    } */
 }

@@ -6,8 +6,6 @@ import {InversifyExpressServer, TYPE} from "inversify-express-utils";
 import {container} from "./di/inversify.config";
 import errorHandlerMiddleware from "./middlewares/ErrorHandlerMiddleware";
 import * as https from "https";
-import {TYPES} from "./di/types";
-import IEmailService from "./services/interfaces/IEmailService";
 
 /*
 Currently VPN servers do not have SSL certificates

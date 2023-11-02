@@ -4,24 +4,10 @@
     "id": "ok_vpn",
     "plans": [
       {
-        "name": "3 часа",
-        "id": "ok_vpn_3_hours",
-        "price": 0,
-        "duration": "P3H",
-        "show": false
-      },
-      {
         "name": "1 день",
         "id": "ok_vpn_1_day",
         "price": 1,
         "duration": "P1D",
-        "show": false
-      },
-      {
-        "name": "1 неделя",
-        "id": "ok_vpn_1_week",
-        "price": 0,
-        "duration": "P7D",
         "show": false
       },
       {

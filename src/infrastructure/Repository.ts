@@ -2,13 +2,16 @@ import IRepository from "./interfaces/IRepository";
 import Config from "../models/Config";
 import {id, inject, injectable} from "inversify";
 import {TYPES} from "../di/types";
-import {Pool, types} from "pg";
+import {Pool, PoolClient, types} from "pg";
 import Subscription from "../models/Subscription";
 import {DateTime} from "luxon";
 import User from "../models/User";
 import Payment from "../models/Payment";
-import {type} from "os";
+import PaymentDetails from "../models/PaymentDetails";
+import {results} from "inversify-express-utils";
 import {config} from "dotenv";
+import {x} from "joi";
+import e from "express";
 
 @injectable()
 export default class Repository implements IRepository {
@@ -105,16 +108,18 @@ export default class Repository implements IRepository {
         )
     }
 
-    async createSubscription(subscription: Subscription): Promise<void> {
-        const result = await this._dbPool.query(
+    async createSubscription(subscription: Subscription, client?: PoolClient | Pool): Promise<void> {
+        client ??= this._dbPool
+        const result = await client.query(
             'INSERT INTO subscriptions (user_id, plan_id, start_at, end_at, is_test, identifier) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
             [subscription.userId, subscription.planId, subscription.startAt.toSQL(), subscription.endAt.toSQL(), subscription.isTest, subscription.identifier]
         )
         subscription.id = Number(result.rows[0].id)
     }
 
-    async emptyNotificationsBySubscriptionId(subscriptionId: number): Promise<void> {
-        await this._dbPool.query(
+    async emptyNotificationsBySubscriptionId(subscriptionId: number, client?: PoolClient | Pool): Promise<void> {
+        client ??= this._dbPool
+        await client.query(
             'UPDATE notifications SET data=jsonb_set(data, \'{last_notification_id}\', \'null\') WHERE data->\'subscription_id\'=$1',
             [subscriptionId]
         )
@@ -126,18 +131,19 @@ export default class Repository implements IRepository {
             [id]
         )
         const data = result.rows[0]
+        if (!data) return null;
 
-        return data ? new Payment(
+        return new Payment(
             data.id,
             data.amount,
             data.user_id,
             data.entity_id,
             data.plan_id,
             data.type,
-            data.static,
+            data.status,
             data.created_at,
             data.paid_at
-        ) : null
+        )
     }
 
     async getSubscriptionById(id: number): Promise<Subscription> {
@@ -146,8 +152,9 @@ export default class Repository implements IRepository {
             [id]
         )
         const data = result.rows[0]
+        if (!data) return null;
 
-        return data ? new Subscription(
+        return new Subscription(
             data.id,
             data.user_id,
             data.plan_id,
@@ -155,7 +162,7 @@ export default class Repository implements IRepository {
             data.end_at,
             data.is_test,
             data.identifier
-        ) : null
+        )
     }
 
     async getUserById(id: number): Promise<User> {
@@ -164,24 +171,84 @@ export default class Repository implements IRepository {
             [id]
         )
         const data = result.rows[0]
+        if (!data) return null;
 
-        return data ? new User(
+        return new User(
             data.id,
             data.telegram_id,
             data.username,
             data.source,
             data.email,
             data.ref_id
-        ) : null
+        )
     }
 
-    async updatePayment(payment: Payment): Promise<void> {
-        await this._dbPool.query('UPDATE payments SET status=$1, paid_at=$2 WHERE id=$3',
+    async updatePayment(payment: Payment, client?: PoolClient | Pool): Promise<void> {
+        client ??= this._dbPool
+        await client.query('UPDATE payments SET status=$1, paid_at=$2 WHERE id=$3',
             [payment.status, payment.paidAt, payment.id])
     }
 
-    async updateSubscription(subscription: Subscription): Promise<void> {
-        await this._dbPool.query('UPDATE subscriptions SET end_at=$1, plan_id=$2 WHERE id=$3',
+    async updateSubscription(subscription: Subscription, client?: PoolClient | Pool): Promise<void> {
+        client ??= this._dbPool
+        await client.query('UPDATE subscriptions SET end_at=$1, plan_id=$2 WHERE id=$3',
             [subscription.endAt, subscription.planId, subscription.id])
+    }
+
+    async createPaymentDetails(paymentDetails: PaymentDetails, client?: PoolClient | Pool): Promise<void> {
+        client ??= this._dbPool
+        const result = await client.query(
+            'INSERT INTO payment_details (user_id, billing_provider, payment_method, secret) VALUES ($1, $2, $3, $4) RETURNING id',
+            [paymentDetails.userId, paymentDetails.billingProvider, paymentDetails.paymentMethod, paymentDetails.secret]
+        )
+        paymentDetails.id = result.rows[0].id as number
+    }
+
+    async getPaymentDetailsByUserId(userId: number): Promise<PaymentDetails[]> {
+        const result = await this._dbPool.query(
+            'SELECT * FROM payment_details WHERE user_id=$1',
+            [userId]
+        )
+
+        return result.rows.map(x => new PaymentDetails(x.id, x.user_id, x.billing_provider, x.payment_method, x.secret))
+    }
+
+    async getPaymentDetailsBySecret(secret: string): Promise<PaymentDetails> {
+        const result = await this._dbPool.query(
+            'SELECT * FROM payment_details WHERE secret=$1',
+            [secret]
+        )
+        const data = result.rows[0]
+        if (!data) return null;
+
+        return new PaymentDetails(data.id, data.user_id, data.billing_provider, data.payment_method, data.secret)
+    }
+
+    async updatePaymentAndSubscription(payment: Payment, subscription: Subscription, paymentDetails?: PaymentDetails): Promise<void> {
+        const client = await this._dbPool.connect()
+        try {
+            await client.query('BEGIN')
+
+            if (!subscription.id)
+                await this.createSubscription(subscription, client)
+            else {
+                await this.updateSubscription(subscription, client)
+                await this.emptyNotificationsBySubscriptionId(subscription.id)
+            }
+
+            if (paymentDetails != null) {
+                await this.createPaymentDetails(paymentDetails, client)
+            }
+
+            await this.updatePayment(payment, client)
+            await this.emptyNotificationsBySubscriptionId(subscription.id)
+
+            await client.query('COMMIT')
+        } catch (e) {
+            await client.query('ROLLBACK')
+            throw e
+        } finally {
+            client.release()
+        }
     }
 }

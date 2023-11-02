@@ -2,6 +2,7 @@ import Config from "../../models/Config";
 import Subscription from "../../models/Subscription";
 import User from "../../models/User";
 import Payment from "../../models/Payment";
+import PaymentDetails from "../../models/PaymentDetails";
 
 export default interface IRepository {
     getSubscriptionByIdentifier(identifier: string): Promise<Subscription>
@@ -28,9 +29,15 @@ export default interface IRepository {
 
     updateSubscription(subscription: Subscription): Promise<void>
 
-    emptyNotificationsBySubscriptionId(subscriptionId: number): Promise<void>
-
     createSubscription(subscription: Subscription): Promise<void>
 
     updatePayment(payment: Payment): Promise<void>
+
+    updatePaymentAndSubscription(payment: Payment, subscription: Subscription, paymentDetailsModel?: PaymentDetails): Promise<void>
+
+    createPaymentDetails(paymentDetails: PaymentDetails): Promise<void>
+
+    getPaymentDetailsByUserId(userId: number): Promise<PaymentDetails[]>
+
+    getPaymentDetailsBySecret(secret: string): Promise<PaymentDetails>
 }

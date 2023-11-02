@@ -14,19 +14,27 @@ export default class NodemailerService implements IEmailService {
         this.emailLogin = process.env.EMAIL_LOGIN
         this.transport = nodemailer.createTransport({
             host: process.env.EMAIL_HOST,
-            port: Number(process.env.PORT),
+            port: Number(process.env.EMAIL_PORT),
             secure: true,
             auth: {
                 user: process.env.EMAIL_LOGIN,
                 pass: process.env.EMAIL_PASSWORD
             }
         })
+
+        this.transport.verify(function (error, success) {
+            if (error) {
+                console.log(error);
+            } else {
+                console.log("SMTP server is ready");
+            }
+        });
     }
 
-    async notifyAboutSubscription(user: User, subscription: Subscription): Promise<void> {
+    async notifyAboutSubscription(email: string, subscription: Subscription): Promise<void> {
         const message = {
             from: `OKVpn - лучший VPN <${this.emailLogin}>`,
-            to: user.email,
+            to: email,
             subject: "Доступ к подписке OKVpn",
             text: `Спасибо за приобретение подписки на OKVpn! Активация нашего VPN займет всего пару минут.\n\nИнструкция по активации: \nВаш ключ доступа: ${GetSubscriptionConfig(subscription)}\n\nПриятного пользования! При возникновении любых проблем пишите в поддержку и мы с радостью ответим.`
         }

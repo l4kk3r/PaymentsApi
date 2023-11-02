@@ -3,7 +3,12 @@
     "module": "commonjs",
     "target": "es5",
     "lib": ["es6"],
-    "types": ["reflect-metadata"],
+    "types": [
+      "...",
+      "reflect-metadata",
+      "@types/jest",
+      "@types/mocha"
+    ],
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
@@ -11,7 +16,7 @@
     "esModuleInterop": true,
     "rootDir": "src",
     "outDir": "dist",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
   },
   "exclude": [
     "node_modules"

@@ -3,12 +3,12 @@ import {TYPES} from "../di/types";
 import IConfigService from "./interfaces/IConfigService";
 import Config from "../models/Config";
 import IServerService from "./interfaces/IServerService";
-import IRepository from "../repositories/interfaces/IRepository";
+import IRepository from "../infrastructure/interfaces/IRepository";
 
 @injectable()
 export default class ConfigService implements IConfigService {
-    @inject(TYPES.IServerService) private _serverService: IServerService
-    @inject(TYPES.IRepository) private _repository: IRepository
+    @inject(TYPES.ServerService) private _serverService: IServerService
+    @inject(TYPES.Repository) private _repository: IRepository
 
     async getKeyByIdentifier(identifier: string): Promise<string> {
         const subscription = await this._repository.getSubscriptionByIdentifier(identifier);

@@ -1,50 +1,46 @@
 import { Container } from "inversify";
 import { TYPES } from "./types";
 
-import CryptoCloudService from "../services/CryptoCloudService";
-import YoomoneyService from "../services/YoomoneyService";
-import LinkService from "../services/LinkService";
+import PaymentService from "../services/PaymentService";
 
-import PaymentRepository from "../repositories/PaymentRepository";
-import IPaymentRepository from "../repositories/interfaces/IPaymentRepository";
+import MessageBroker from "../infrastructure/MessageBroker";
+import IMessageBroker from "../infrastructure/interfaces/IMessageBroker";
 import ICryptoService from "../services/interfaces/ICryptoService";
 import ICardService from "../services/interfaces/ICardService";
 import IYooMoneyService from "../services/interfaces/IYooMoneyService";
-import ILinkService from "../services/interfaces/ILinkService";
+import IPaymentService from "../services/interfaces/IPaymentService";
 
-import "../controllers/LinkController";
-import "../controllers/PaymentController"
-import "../controllers/StatusController"
+import "../controllers/PaymentController";
+import "../controllers/BillingController"
 import "../controllers/KeyController"
 
 import ICryptoCloudService from "../services/interfaces/ICryptoCloudService";
 import databasePool from "./databasePool";
 import {Pool} from "pg";
-import IRepository from "../repositories/interfaces/IRepository";
-import Repository from "../repositories/Repository";
+import IRepository from "../infrastructure/interfaces/IRepository";
+import Repository from "../infrastructure/Repository";
 import IServerService from "../services/interfaces/IServerService";
 import ServerService from "../services/ServerService";
 import IConfigService from "../services/interfaces/IConfigService";
 import ConfigService from "../services/ConfigService";
-import IYookassaService from "../services/interfaces/IYookassaService";
 import YookassaService from "../services/YookassaService";
 import IEmailService from "../services/interfaces/IEmailService";
 import NodemailerService from "../services/NodemailerService";
+import IBillingService from "../services/interfaces/IBillingService";
+import ISubscriptionService from "../services/interfaces/ISubscriptionService";
+import SubscriptionService from "../services/SubscriptionService";
 
 const container = new Container()
 
 container.bind<Pool>(TYPES.DatabasePool).toConstantValue(databasePool)
 
-container.bind<ICryptoService>(TYPES.ICryptoService).to(CryptoCloudService)
-container.bind<ICardService>(TYPES.ICardService).to(YookassaService)
-container.bind<ICryptoCloudService>(TYPES.ICryptoCloudService).to(CryptoCloudService)
-container.bind<IYooMoneyService>(TYPES.IYooMoneyService).to(YookassaService)
-container.bind<IYookassaService>(TYPES.IYookassaService).to(YookassaService)
-container.bind<ILinkService>(TYPES.ILinkService).to(LinkService)
-container.bind<IServerService>(TYPES.IServerService).to(ServerService)
-container.bind<IConfigService>(TYPES.IConfigService).to(ConfigService)
-container.bind<IPaymentRepository>(TYPES.IPaymentRepository).to(PaymentRepository).inSingletonScope()
-container.bind<IRepository>(TYPES.IRepository).to(Repository).inSingletonScope()
-container.bind<IEmailService>(TYPES.IEmailService).to(NodemailerService).inSingletonScope()
+container.bind<IBillingService>(TYPES.YookassaService).to(YookassaService)
+container.bind<IPaymentService>(TYPES.PaymentService).to(PaymentService)
+container.bind<ISubscriptionService>(TYPES.SubscriptionService).to(SubscriptionService)
+container.bind<IServerService>(TYPES.ServerService).to(ServerService)
+container.bind<IConfigService>(TYPES.ConfigService).to(ConfigService)
+container.bind<IMessageBroker>(TYPES.MessageBroker).to(MessageBroker).inSingletonScope()
+container.bind<IRepository>(TYPES.Repository).to(Repository).inSingletonScope()
+container.bind<IEmailService>(TYPES.EmailService).to(NodemailerService).inSingletonScope()
 
 export { container }

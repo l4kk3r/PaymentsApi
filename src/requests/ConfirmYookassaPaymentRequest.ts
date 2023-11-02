@@ -12,7 +12,12 @@ export default interface ConfirmYookassaPaymentRequest extends Request {
                 value: number
             },
             metadata: {
-                payload: string
+                paymentId: string
+            },
+            payment_method: {
+                type: string,
+                id: string,
+                saved: boolean
             }
         }
     }

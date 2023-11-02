@@ -1,3 +1,3 @@
-import IPaymentService from "./IPaymentService";
+import IBillingService from "./IBillingService";
 
-export default interface IYooMoneyService extends IPaymentService {}
+export default interface IYooMoneyService extends IBillingService {}

@@ -2,10 +2,10 @@ import {Request} from "express";
 
 export default interface GenerateLinkRequest extends Request {
     body: {
-        service: string,
+        userId: number,
+        planId: string,
         paymentMethod: string,
-        currency: string,
-        amount: number,
-        payload: string
+        subscriptionId: number,
+        returnUrl: string
     }
 }

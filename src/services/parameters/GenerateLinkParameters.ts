@@ -1,8 +1,7 @@
 export default interface GenerateLinkParameters {
-    service: string
-    paymentMethod: string
-    amount: number
-    currency: string
-    payload: string,
-    returnUrl?: string
+    userId: number,
+    planId: string,
+    paymentMethod: string,
+    subscriptionId?: number,
+    returnUrl: string
 }
