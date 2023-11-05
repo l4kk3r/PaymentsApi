@@ -12,7 +12,7 @@ export default class YookassaService implements IYookassaService {
     private AMOUNT_COEFFICIENT = 0.9
 
     private readonly api: AxiosInstance
-    private readonly allowedIps: string[]
+    private readonly isAutoPaymentsEnabled: boolean
 
     @inject(TYPES.MessageBroker) private _paymentRepository: IMessageBroker
 
@@ -20,8 +20,8 @@ export default class YookassaService implements IYookassaService {
         const apiUrl = process.env.YOOKASSA_API_URL
         const shopId = process.env.YOOKASSA_SHOP_ID
         const shopSecret = process.env.YOOKASSA_SECRET_KEY
+        this.isAutoPaymentsEnabled = JSON.parse(process.env.AUTO_PAYMENTS)
 
-        this.allowedIps = JSON.parse(process.env.YOOKASSA_IPS)
         this.api = axios.create({
             baseURL: apiUrl,
             headers: {
@@ -43,7 +43,8 @@ export default class YookassaService implements IYookassaService {
                 type: 'redirect',
                 return_url: returnUrl
             },
-            capture: true
+            capture: true,
+            save_payment_method: this.isAutoPaymentsEnabled
         }
 
         const result = await this.api.post("", payment, {
