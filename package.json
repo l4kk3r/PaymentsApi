@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "start:prod": "yarn build && yarn start",
     "start:dev": "tsnd -r dotenv/config src/index.ts",
-    "test": "jest --setupFiles dotenv/config --forceExit"
+    "test": "jest --setupFiles dotenv/config --forceExit",
+    "migrate": "node-pg-migrate -r dotenv/config"
   },
   "devDependencies": {
     "@types/cors": "^2.8.14",
@@ -21,6 +22,7 @@
     "@types/luxon": "^3.3.2",
     "@types/mocha": "^10.0.3",
     "@types/node": "^20.8.9",
+    "@types/node-pg-migrate": "^2.3.1",
     "@types/nodemailer": "^6.4.13",
     "@types/pg": "^8.10.5",
     "dotenv": "^16.0.3",
@@ -40,6 +42,7 @@
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.0",
     "luxon": "^3.4.3",
+    "node-pg-migrate": "^6.2.2",
     "nodemailer": "^6.9.7",
     "pg": "^8.11.3",
     "reflect-metadata": "^0.1.13"
