@@ -1,4 +1,6 @@
 import {DateTime} from "luxon";
+import PaymentStatus from "./enums/PaymentStatus";
+import PaymentType from "./enums/PaymentType";
 
 export default class Payment {
     constructor(
@@ -7,9 +9,9 @@ export default class Payment {
         public readonly userId: number,
         public readonly entityId: number,
         public readonly planId: string,
-        public readonly type: string,
-        public status: string = 'created',
-        public readonly createdAt?: DateTime,
+        public readonly type: PaymentType,
+        public status: PaymentStatus = PaymentStatus.Created,
+        public readonly createdAt: DateTime = DateTime.utc(),
         public paidAt?: DateTime
     ) { }
 }

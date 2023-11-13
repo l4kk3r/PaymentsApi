@@ -1,8 +1,13 @@
-import PaymentMessage from "../../models/PaymentMessage";
-import Payment from "../../models/Payment";
+import PaymentMessage from "../../models/messages/PaymentMessage";
+import FailedSubscriptionAutoRenewMessage from "../../models/messages/FailedSubscriptionAutoRenewMessage";
+import BaseMessage from "../../models/messages/BaseMessage";
 
 export default interface IMessageBroker {
-    notify(payment: PaymentMessage): void
+    notify(message: BaseMessage): void
 
-    getLatestMessage(noAck: boolean): Promise<PaymentMessage>
+    getPaymentMessage(ack: boolean): Promise<PaymentMessage>
+
+    getFailedAutoRenewMessage(ack: boolean): Promise<FailedSubscriptionAutoRenewMessage>
+
+    purgeAll(): void
 }

@@ -3,6 +3,8 @@ import Subscription from "../../models/Subscription";
 import User from "../../models/User";
 import Payment from "../../models/Payment";
 import PaymentDetails from "../../models/PaymentDetails";
+import PaymentStatus from "../../models/enums/PaymentStatus";
+import PaymentType from "../../models/enums/PaymentType";
 
 export default interface IRepository {
     getSubscriptionByIdentifier(identifier: string): Promise<Subscription>
@@ -10,6 +12,8 @@ export default interface IRepository {
     getSubscriptionConfig(subscriptionId: number, serverIp: string): Promise<Config>
 
     getSubscriptionById(id: number): Promise<Subscription>
+
+    getExpiredSubscriptions(allowedStatuses: string[]): Promise<Subscription[]>
 
     createConfig(config: Config): Promise<void>
 
@@ -35,9 +39,9 @@ export default interface IRepository {
 
     updatePaymentAndSubscription(payment: Payment, subscription: Subscription, paymentDetailsModel?: PaymentDetails): Promise<void>
 
+    getLastPaymentForSubscription(subscriptionId: number, paymentStatus: PaymentStatus, paymentType: PaymentType): Promise<Payment>
+
     createPaymentDetails(paymentDetails: PaymentDetails): Promise<void>
 
-    getPaymentDetailsByUserId(userId: number): Promise<PaymentDetails[]>
-
-    getPaymentDetailsBySecret(secret: string): Promise<PaymentDetails>
+    getPaymentDetailsByUserId(userId: number): Promise<PaymentDetails>
 }

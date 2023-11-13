@@ -26,6 +26,10 @@ import NodemailerService from "../services/NodemailerService";
 import IBillingService from "../services/interfaces/IBillingService";
 import ISubscriptionService from "../services/interfaces/ISubscriptionService";
 import SubscriptionService from "../services/SubscriptionService";
+import IJob from "../jobs/interfaces/IJob";
+import RenewJob from "../jobs/RenewJob";
+import ILoggerFactory from "../infrastructure/interfaces/ILoggerFactory";
+import LoggerFactory from "../infrastructure/LoggerFactory";
 
 const container = new Container()
 
@@ -39,5 +43,7 @@ container.bind<IConfigService>(TYPES.ConfigService).to(ConfigService)
 container.bind<IMessageBroker>(TYPES.MessageBroker).to(MessageBroker).inSingletonScope()
 container.bind<IRepository>(TYPES.Repository).to(Repository).inSingletonScope()
 container.bind<IEmailService>(TYPES.EmailService).to(NodemailerService).inSingletonScope()
+container.bind<IJob>(TYPES.RenewJob).to(RenewJob)
+container.bind<ILoggerFactory>(TYPES.LoggerFactory).to(LoggerFactory).inSingletonScope()
 
 export { container }

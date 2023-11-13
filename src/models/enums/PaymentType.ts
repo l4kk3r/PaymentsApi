@@ -1,6 +1,7 @@
 enum PaymentType {
     New = 'new',
-    Renew = 'renew'
+    Renew = 'renew',
+    AutoRenew = 'auto_renew'
 }
 
 export default PaymentType;

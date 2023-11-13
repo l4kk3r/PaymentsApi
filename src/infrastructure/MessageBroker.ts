@@ -1,58 +1,99 @@
 import IMessageBroker from "./interfaces/IMessageBroker";
-import PaymentMessage from "../models/PaymentMessage";
+import PaymentMessage from "../models/messages/PaymentMessage";
 import amqp, {Channel} from "amqplib";
-import {injectable} from "inversify";
+import {inject, injectable} from "inversify";
+import FailedSubscriptionAutoRenewMessage from "../models/messages/FailedSubscriptionAutoRenewMessage";
+import BaseMessage from "../models/messages/BaseMessage";
+import ILogger from "./interfaces/ILogger";
+import {TYPES} from "../di/types";
+import ILoggerFactory from "./interfaces/ILoggerFactory";
 
 @injectable()
 export default class MessageBroker implements IMessageBroker {
-    private ExchangeName = 'payments'
+    private Exchanges = {
+        'payments': 'payments',
+        'failedAutoRenews': 'failed_auto_renews'
+    }
     private ExchangeType = 'direct'
     private ServiceName = process.env.SERVICE_NAME
 
     private channel: Channel
+    private readonly _logger: ILogger
 
-    constructor() {
+    constructor(@inject(TYPES.LoggerFactory) loggerFactory: ILoggerFactory) {
+        this._logger = loggerFactory.create("renew-job")
         const url = process.env.RABBITMQ_URL
 
         this.createChannel(url)
             .then(channel => {
-                console.log("RabbitMQ connected")
+                this._logger.info("RabbitMQ connected")
                 this.channel = channel
             })
-    }
-
-    notify(payment: PaymentMessage): void {
-        const messageBuffer = Buffer.from(JSON.stringify(payment))
-        this.channel.publish(this.ExchangeName, this.ServiceName, messageBuffer)
     }
 
     private async createChannel(url: string): Promise<Channel> {
         const connection = await amqp.connect(url)
         const channel = await connection.createChannel()
 
-        const dlqExchangeName = `${this.ExchangeName}_dlq`
-        await channel.assertExchange(this.ExchangeName, this.ExchangeType)
-        await channel.assertExchange(dlqExchangeName, this.ExchangeType)
+        for (let exchange of Object.values(this.Exchanges)) {
+            const dlqExchangeName = `${exchange}_dlq`
+            await channel.assertExchange(exchange, this.ExchangeType)
+            await channel.assertExchange(dlqExchangeName, this.ExchangeType)
 
-        const queueName = `${this.ServiceName}_payments`
-        const dlqQueueName = `${queueName}_dlq`
+            const queueName = `${this.ServiceName}_${exchange}`
+            const dlqQueueName = `${queueName}_dlq`
 
-        await channel.assertQueue(queueName, { durable: true, deadLetterExchange: dlqExchangeName })
-        await channel.assertQueue(dlqQueueName, { durable: true, autoDelete: false })
-        await channel.bindQueue(queueName, this.ExchangeName, this.ServiceName)
-        await channel.bindQueue(dlqQueueName, dlqExchangeName, this.ServiceName)
+            await channel.assertQueue(queueName, { durable: true, deadLetterExchange: dlqExchangeName })
+            await channel.assertQueue(dlqQueueName, { durable: true, autoDelete: false })
+            await channel.bindQueue(queueName, exchange, this.ServiceName)
+            await channel.bindQueue(dlqQueueName, dlqExchangeName, this.ServiceName)
+        }
 
         return channel
     }
 
-    async getLatestMessage(noAck: boolean): Promise<PaymentMessage> {
-        const message = await this.channel.get(`${this.ServiceName}_payments`, { noAck })
+    notify(message: BaseMessage): void {
+        let exchange: string
+        if (message instanceof PaymentMessage) {
+            exchange = this.Exchanges.payments
+        } else if (message instanceof FailedSubscriptionAutoRenewMessage) {
+            exchange = this.Exchanges.failedAutoRenews
+        } else {
+            throw new Error('Queue for this message does not exist')
+        }
+
+        const messageBuffer = Buffer.from(JSON.stringify(message))
+        this.channel.publish(exchange, this.ServiceName, messageBuffer)
+    }
+
+    async getPaymentMessage(ack: boolean): Promise<PaymentMessage> {
+        const message = await this.getMessage(`${this.ServiceName}_${this.Exchanges.payments}`, ack)
+        return message ? new PaymentMessage(message.subscriptionId, message.type) : null
+    }
+
+    async getFailedAutoRenewMessage(ack: boolean): Promise<FailedSubscriptionAutoRenewMessage> {
+        const message = await this.getMessage(`${this.ServiceName}_${this.Exchanges.failedAutoRenews}`, ack)
+        return message ? new FailedSubscriptionAutoRenewMessage(message.subscriptionId) : null
+    }
+
+    private async getMessage(queue: string, ack: boolean) {
+        const message = await this.channel.get(queue)
         if (!message)
             return
 
         const content = JSON.parse(message.content.toString())
-        this.channel.ack(message)
+        if (ack)
+            this.channel.ack(message)
+        else
+            this.channel.nack(message)
 
-        return new PaymentMessage(content.subscriptionId, content.type)
+        return content
+    }
+
+    purgeAll() {
+        for (let exchange of Object.values(this.Exchanges)) {
+            const queueName = `${this.ServiceName}_${exchange}`
+            this.channel.purgeQueue(queueName)
+        }
     }
 }

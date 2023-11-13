@@ -1,5 +1,5 @@
 import {NextFunction, Response} from 'express';
-import GenerateLinkRequest from "../requests/GenerateLinkRequest";
+import GeneratePaymentRequest from "../requests/GeneratePaymentRequest";
 import {TYPES} from "../di/types";
 import {request, response, controller, httpPost, Controller, next} from "inversify-express-utils";
 import {inject} from "inversify";
@@ -7,7 +7,7 @@ import GenerateLinkParameters from "../services/parameters/GenerateLinkParameter
 import bodyValidatorMiddleware from "../middlewares/BodyValidatorMiddleware";
 import GenerateLinkRequestBodyValidator from "../requests/validators/GenerateLinkRequestBodyValidator";
 import IPaymentService from "../services/interfaces/IPaymentService";
-import GenerateLinkFromEmailRequest from "../requests/GenerateLinkFromEmailRequest";
+import GeneratePaymentFromEmailRequest from "../requests/GeneratePaymentFromEmailRequest";
 import GenerateLinkFromEmailRequestBodyValidator from "../requests/validators/GenerateLinkFromEmailRequestBodyValidator";
 import GenerateLinkFromEmailParameters from "../services/parameters/GenerateLinkFromEmailParameters";
 
@@ -17,7 +17,7 @@ export class PaymentController implements Controller {
 
     @httpPost('/generate', bodyValidatorMiddleware(GenerateLinkRequestBodyValidator))
     private async generate(
-        @request() request: GenerateLinkRequest,
+        @request() request: GeneratePaymentRequest,
         @response() response: Response,
         @next() next: NextFunction)
     {
@@ -31,7 +31,7 @@ export class PaymentController implements Controller {
 
     @httpPost('/generate-from-email', bodyValidatorMiddleware(GenerateLinkFromEmailRequestBodyValidator))
     private async generateFromEmail(
-        @request() request: GenerateLinkFromEmailRequest,
+        @request() request: GeneratePaymentFromEmailRequest,
         @response() response: Response,
         @next() next: NextFunction)
     {

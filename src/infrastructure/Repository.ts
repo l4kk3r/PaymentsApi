@@ -1,6 +1,6 @@
 import IRepository from "./interfaces/IRepository";
 import Config from "../models/Config";
-import {id, inject, injectable} from "inversify";
+import {inject, injectable} from "inversify";
 import {TYPES} from "../di/types";
 import {Pool, PoolClient, types} from "pg";
 import Subscription from "../models/Subscription";
@@ -8,10 +8,9 @@ import {DateTime} from "luxon";
 import User from "../models/User";
 import Payment from "../models/Payment";
 import PaymentDetails from "../models/PaymentDetails";
-import {results} from "inversify-express-utils";
-import {config} from "dotenv";
-import {x} from "joi";
-import e from "express";
+import PaymentType from "../models/enums/PaymentType";
+import PaymentStatus from "../models/enums/PaymentStatus";
+import AutoRenewStatus from "../models/enums/AutoRenewStatus";
 
 @injectable()
 export default class Repository implements IRepository {
@@ -35,13 +34,15 @@ export default class Repository implements IRepository {
         user.id = result.rows[0].id as number
     }
 
-    async createPayment(payment: Payment): Promise<void> {
-        const { amount, userId, entityId, planId, type } = payment
+    async createPayment(payment: Payment, client?: PoolClient | Pool): Promise<void> {
+        client ??= this._dbPool
 
-        const result = await this._dbPool.query(
-            'INSERT INTO payments (amount, user_id, entity_id, plan_id, type) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [amount, userId, entityId, planId, type]
+        const { amount, userId, entityId, planId, type, status, createdAt } = payment
+        const result = await client.query(
+            'INSERT INTO payments (amount, user_id, entity_id, plan_id, type, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+            [amount, userId, entityId, planId, type, status, createdAt]
         )
+
         payment.id = result.rows[0].id as number
     }
 
@@ -50,11 +51,9 @@ export default class Repository implements IRepository {
             'SELECT * FROM users WHERE email=$1',
             [email]
         )
-
         const data = result.rows[0]
-        if (!data) return null;
 
-        return new User(data.id, data.telegram_id, data.username, data.source, data.email, data.ref_id);
+        return this.mapUser(data);
     }
 
     async getSubscriptionByIdentifier(identifier: string): Promise<Subscription> {
@@ -63,20 +62,26 @@ export default class Repository implements IRepository {
             [identifier]
         )
         const data = result.rows[0]
-        if (!data) return null;
 
-        return new Subscription(data.id, data.user_id, data.plan_id, data.start_at, data.end_at, data.is_test, data.identifier);
+        return this.mapSubscription(data);
+    }
+
+    async getExpiredSubscriptions(allowedStatuses: string[]): Promise<Subscription[]> {
+        const result = await this._dbPool.query(
+            'SELECT * FROM subscriptions WHERE end_at < (current_timestamp at time zone \'utc\') AND auto_renew = ANY($1::text[])',
+            [allowedStatuses]
+        )
+
+        return result.rows.map(data => this.mapSubscription(data))
     }
 
     async getSubscriptionConfig(subscriptionId: number, serverIp: string): Promise<Config> {
         const result = await this._dbPool.query(
             'SELECT * FROM configs WHERE configs.subscription_id=$1 AND server=$2',
             [subscriptionId, serverIp])
-
         const data = result.rows[0]
-        if (!data) return null;
 
-        return new Config(data.id, data.data, data.server, data.key_id, data.is_active, data.subscription_id);
+        return this.mapConfig(data);
     }
 
     async createConfig(config: Config): Promise<void> {
@@ -94,11 +99,9 @@ export default class Repository implements IRepository {
             'SELECT * FROM configs WHERE id=$1',
             [id]
         )
-
         const data = result.rows[0]
-        if (!data) return null;
 
-        return new Config(data.id, data.data, data.server, data.key_id, data.is_active, data.subscription_id);
+        return this.mapConfig(data);
     }
 
     async deactivateConfig(id: number): Promise<void> {
@@ -111,16 +114,16 @@ export default class Repository implements IRepository {
     async createSubscription(subscription: Subscription, client?: PoolClient | Pool): Promise<void> {
         client ??= this._dbPool
         const result = await client.query(
-            'INSERT INTO subscriptions (user_id, plan_id, start_at, end_at, is_test, identifier) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-            [subscription.userId, subscription.planId, subscription.startAt.toSQL(), subscription.endAt.toSQL(), subscription.isTest, subscription.identifier]
+            'INSERT INTO subscriptions (user_id, plan_id, start_at, end_at, is_test, identifier, auto_renew) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+            [subscription.userId, subscription.planId, subscription.startAt.toSQL(), subscription.endAt.toSQL(), subscription.isTest, subscription.identifier, subscription.autoRenew]
         )
         subscription.id = Number(result.rows[0].id)
     }
 
-    async emptyNotificationsBySubscriptionId(subscriptionId: number, client?: PoolClient | Pool): Promise<void> {
+    async deleteNotificationsBySubscriptionId(subscriptionId: number, client?: PoolClient | Pool): Promise<void> {
         client ??= this._dbPool
         await client.query(
-            'UPDATE notifications SET data=jsonb_set(data, \'{last_notification_id}\', \'null\') WHERE data->\'subscription_id\'=$1',
+            'DELETE FROM notifications WHERE data->\'subscription_id\'=$1',
             [subscriptionId]
         )
     }
@@ -131,19 +134,8 @@ export default class Repository implements IRepository {
             [id]
         )
         const data = result.rows[0]
-        if (!data) return null;
 
-        return new Payment(
-            data.id,
-            data.amount,
-            data.user_id,
-            data.entity_id,
-            data.plan_id,
-            data.type,
-            data.status,
-            data.created_at,
-            data.paid_at
-        )
+        return this.mapPayment(data)
     }
 
     async getSubscriptionById(id: number): Promise<Subscription> {
@@ -152,17 +144,8 @@ export default class Repository implements IRepository {
             [id]
         )
         const data = result.rows[0]
-        if (!data) return null;
 
-        return new Subscription(
-            data.id,
-            data.user_id,
-            data.plan_id,
-            data.start_at,
-            data.end_at,
-            data.is_test,
-            data.identifier
-        )
+        return this.mapSubscription(data)
     }
 
     async getUserById(id: number): Promise<User> {
@@ -171,16 +154,8 @@ export default class Repository implements IRepository {
             [id]
         )
         const data = result.rows[0]
-        if (!data) return null;
 
-        return new User(
-            data.id,
-            data.telegram_id,
-            data.username,
-            data.source,
-            data.email,
-            data.ref_id
-        )
+        return this.mapUser(data)
     }
 
     async updatePayment(payment: Payment, client?: PoolClient | Pool): Promise<void> {
@@ -189,39 +164,50 @@ export default class Repository implements IRepository {
             [payment.status, payment.paidAt, payment.id])
     }
 
+    async getLastPaymentForSubscription(subscriptionId: number, paymentStatus: PaymentStatus, paymentType: PaymentType): Promise<Payment> {
+        const result = await this._dbPool.query(
+            'SELECT * FROM payments WHERE entity_id=$1 and status=$2 and type=$3 ORDER BY created_at DESC LIMIT 1',
+            [subscriptionId, paymentStatus, paymentType]
+        )
+        const data = result.rows[0]
+
+        return this.mapPayment(data)
+    }
+
     async updateSubscription(subscription: Subscription, client?: PoolClient | Pool): Promise<void> {
         client ??= this._dbPool
-        await client.query('UPDATE subscriptions SET end_at=$1, plan_id=$2 WHERE id=$3',
-            [subscription.endAt, subscription.planId, subscription.id])
+        await client.query('UPDATE subscriptions SET end_at=$1, plan_id=$2, auto_renew=$3 WHERE id=$4',
+            [subscription.endAt, subscription.planId, subscription.autoRenew, subscription.id])
     }
 
     async createPaymentDetails(paymentDetails: PaymentDetails, client?: PoolClient | Pool): Promise<void> {
         client ??= this._dbPool
+
+        const { userId, billingProvider, paymentMethod, secret, createdAt } = paymentDetails
         const result = await client.query(
-            'INSERT INTO payment_details (user_id, billing_provider, payment_method, secret) VALUES ($1, $2, $3, $4) RETURNING id',
-            [paymentDetails.userId, paymentDetails.billingProvider, paymentDetails.paymentMethod, paymentDetails.secret]
+            'INSERT INTO payment_details (user_id, billing_provider, payment_method, secret, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [userId, billingProvider, paymentMethod, secret, createdAt]
         )
         paymentDetails.id = result.rows[0].id as number
     }
 
-    async getPaymentDetailsByUserId(userId: number): Promise<PaymentDetails[]> {
+    async getPaymentDetailsByUserId(userId: number): Promise<PaymentDetails> {
         const result = await this._dbPool.query(
-            'SELECT * FROM payment_details WHERE user_id=$1',
+            'SELECT * FROM payment_details WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1',
             [userId]
         )
+        const data = result.rows[0]
 
-        return result.rows.map(x => new PaymentDetails(x.id, x.user_id, x.billing_provider, x.payment_method, x.secret))
+        return this.mapPaymentDetails(data)
     }
 
-    async getPaymentDetailsBySecret(secret: string): Promise<PaymentDetails> {
+    private async existsPaymentDetailsBySecret(secret: string): Promise<boolean> {
         const result = await this._dbPool.query(
-            'SELECT * FROM payment_details WHERE secret=$1',
+            'SELECT 1 FROM payment_details WHERE secret=$1',
             [secret]
         )
-        const data = result.rows[0]
-        if (!data) return null;
 
-        return new PaymentDetails(data.id, data.user_id, data.billing_provider, data.payment_method, data.secret)
+        return result.rowCount != 0;
     }
 
     async updatePaymentAndSubscription(payment: Payment, subscription: Subscription, paymentDetails?: PaymentDetails): Promise<void> {
@@ -233,15 +219,17 @@ export default class Repository implements IRepository {
                 await this.createSubscription(subscription, client)
             else {
                 await this.updateSubscription(subscription, client)
-                await this.emptyNotificationsBySubscriptionId(subscription.id)
+                await this.deleteNotificationsBySubscriptionId(subscription.id, client)
             }
 
-            if (paymentDetails != null) {
+            if (paymentDetails != null && !(await this.existsPaymentDetailsBySecret(paymentDetails.secret))) {
                 await this.createPaymentDetails(paymentDetails, client)
             }
 
-            await this.updatePayment(payment, client)
-            await this.emptyNotificationsBySubscriptionId(subscription.id)
+            if (!payment.id)
+                await this.createPayment(payment, client)
+            else
+                await this.updatePayment(payment, client)
 
             await client.query('COMMIT')
         } catch (e) {
@@ -250,5 +238,70 @@ export default class Repository implements IRepository {
         } finally {
             client.release()
         }
+    }
+
+    private mapSubscription(data: any) : Subscription {
+        if (!data) return null;
+
+        return new Subscription(
+            data.id,
+            data.user_id,
+            data.plan_id,
+            data.start_at,
+            data.end_at,
+            data.is_test,
+            data.identifier,
+            data.auto_renew as AutoRenewStatus);
+    }
+
+    private mapUser(data: any) : User {
+        if (!data) return null;
+
+        return new User(
+            data.id,
+            data.telegram_id,
+            data.username,
+            data.source,
+            data.email,
+            data.ref_id);
+    }
+
+    private mapConfig(data: any) : Config {
+        if (!data) return null;
+
+        return new Config(
+            data.id,
+            data.data,
+            data.server,
+            data.key_id,
+            data.is_active,
+            data.subscription_id)
+    }
+
+    private mapPayment(data: any) : Payment {
+        if (!data) return null;
+
+        return new Payment(
+            data.id,
+            data.amount,
+            data.user_id,
+            data.entity_id,
+            data.plan_id,
+            data.type as PaymentType,
+            data.status as PaymentStatus,
+            data.created_at,
+            data.paid_at
+        )
+    }
+
+    private mapPaymentDetails(data: any) : PaymentDetails {
+        if (!data) return null;
+
+        return new PaymentDetails(
+            data.id,
+            data.user_id,
+            data.billing_provider,
+            data.payment_method,
+            data.secret)
     }
 }

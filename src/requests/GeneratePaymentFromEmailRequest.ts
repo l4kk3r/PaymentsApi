@@ -1,11 +1,10 @@
 import {Request} from "express";
 
-export default interface GenerateLinkRequest extends Request {
+export default interface GeneratePaymentFromEmailRequest extends Request {
     body: {
-        userId: number,
         planId: string,
         paymentMethod: string,
-        subscriptionId: number,
+        email: string,
         returnUrl: string
     }
 }

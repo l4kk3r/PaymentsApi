@@ -1,5 +1,4 @@
 import "reflect-metadata";
-require('dotenv').config()
 
 import { container} from "../src/di/inversify.config";
 import {TYPES} from "../src/di/types";

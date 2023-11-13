@@ -1,10 +1,12 @@
 import IYookassaService from "./interfaces/IYookassaService";
 import 'axios'
-import axios, {AxiosInstance} from "axios";
+import axios, {AxiosError, AxiosInstance} from "axios";
 import {inject, injectable} from "inversify";
 import {randomUUID} from "crypto";
 import {TYPES} from "../di/types";
 import IMessageBroker from "../infrastructure/interfaces/IMessageBroker";
+import ILogger from "../infrastructure/interfaces/ILogger";
+import ILoggerFactory from "../infrastructure/interfaces/ILoggerFactory";
 
 @injectable()
 export default class YookassaService implements IYookassaService {
@@ -14,9 +16,9 @@ export default class YookassaService implements IYookassaService {
     private readonly api: AxiosInstance
     private readonly isAutoPaymentsEnabled: boolean
 
-    @inject(TYPES.MessageBroker) private _paymentRepository: IMessageBroker
+    private readonly _logger: ILogger
 
-    constructor() {
+    constructor(@inject(TYPES.LoggerFactory) loggerFactory: ILoggerFactory) {
         const apiUrl = process.env.YOOKASSA_API_URL
         const shopId = process.env.YOOKASSA_SHOP_ID
         const shopSecret = process.env.YOOKASSA_SECRET_KEY
@@ -28,12 +30,42 @@ export default class YookassaService implements IYookassaService {
                 'Authorization': `Basic ${Buffer.from(shopId + ':' + shopSecret).toString('base64')}`
             }
         })
+        this._logger = loggerFactory.create("yookassa-service")
+    }
+
+    async makeAutoPayment(secret: string, amount: number): Promise<boolean> {
+        try {
+            const payment = {
+                amount: {
+                    currency: this.DEFAULT_CURRENCY,
+                    value: amount
+                },
+                descirption: 'Автоматическое продление',
+                payment_method_id: secret,
+                capture: true
+            }
+
+            const result = await this.api.post("", payment, {
+                headers: {
+                    'Idempotence-Key': randomUUID()
+                }
+            })
+
+            return result.data.status == "succeeded";
+        } catch (e) {
+            // If payment method was declined
+            if (e instanceof AxiosError && (e.response?.status < 500)) {
+                return false;
+            }
+            this._logger.error(e.message)
+            throw e;
+        }
     }
 
     async generateLink(amount: number, paymentId: number, returnUrl: string): Promise<string> {
         const payment = {
             amount: {
-                currency: 'RUB',
+                currency: this.DEFAULT_CURRENCY,
                 value: amount
             },
             metadata: {

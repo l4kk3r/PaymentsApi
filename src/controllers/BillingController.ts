@@ -4,10 +4,17 @@ import {TYPES} from "../di/types";
 import {Response} from "express";
 import ConfirmYookassaPaymentRequest from "../requests/ConfirmYookassaPaymentRequest";
 import IPaymentService from "../services/interfaces/IPaymentService";
+import ILogger from "../infrastructure/interfaces/ILogger";
+import ILoggerFactory from "../infrastructure/interfaces/ILoggerFactory";
 
 @controller('/billing')
 export class BillingController implements Controller {
     @inject(TYPES.PaymentService) private _paymentService: IPaymentService
+    private readonly _logger: ILogger
+
+    constructor(@inject(TYPES.LoggerFactory) loggerFactory: ILoggerFactory) {
+        this._logger = loggerFactory.create("renew-job")
+    }
 
     @httpPost('/confirm/yookassa')
     private async confirmYookassa(
@@ -16,10 +23,10 @@ export class BillingController implements Controller {
         @next() next)
     {
         const data = request.body.object
-        if (request.body.event != 'payment.succeeded')
+        if (request.body.event != 'payment.succeeded' || !data.metadata || Object.keys(data.metadata).length == 0)
             return response.send()
 
-        console.log('Received payment request')
+        this._logger.info('Received payment request')
 
         try {
             const confirmPaymentParameters = {
@@ -38,11 +45,11 @@ export class BillingController implements Controller {
             // TODO: verify payment based on ip
             await this._paymentService.confirmPayment(confirmPaymentParameters)
 
-            console.log(`Payment request #${data.id} is verified`)
+            this._logger.info(`Payment request #${data.id} is verified`)
 
             response.send()
         } catch (e) {
-            console.log(`Payment request #${data.id} verification FAILED`)
+            this._logger.error(`Payment request #${data.id} verification FAILED`)
 
             throw e;
         }
