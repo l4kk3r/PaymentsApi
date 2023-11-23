@@ -35,5 +35,16 @@ server.setErrorConfig((app) => {
 
 let app = server.build();
 
+cron.schedule(process.env.JOBS_CRON, async () => {
+    jobsLogger.info('Jobs logger started')
+    for (let job of jobs) {
+        try {
+            await job.run()
+        } catch (e) {
+            jobsLogger.error(`Error during executing job: ${e.message}`)
+        }
+    }
+})
+
 const port = process.env.PORT
 app.listen(port, () => logger.info(`App is running on ${port} port`))
