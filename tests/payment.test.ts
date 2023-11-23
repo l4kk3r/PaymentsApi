@@ -132,7 +132,7 @@ describe('Payment service tests', () => {
     it('Auto renew subscription', async () => {
         // Assert
         const user = await createUser()
-        const paymentDetails = await createPaymentDetails(user, PAYMENT_SECRET)
+        await createPaymentDetails(user, PAYMENT_SECRET)
         const subscription = await createSubscription(user, AutoRenewStatus.Enabled)
         const renewJob = container.get<IJob>(TYPES.RenewJob)
 

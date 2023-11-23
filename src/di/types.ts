@@ -9,7 +9,8 @@ const TYPES = {
     Repository: Symbol.for("Repository"),
     EmailService: Symbol.for("EmailService"),
     RenewJob: Symbol.for("RenewJob"),
-    LoggerFactory: Symbol.for('LoggerFactory')
+    LoggerFactory: Symbol.for('LoggerFactory'),
+    CrmService: Symbol.for('CrmService')
 }
 
 export { TYPES };

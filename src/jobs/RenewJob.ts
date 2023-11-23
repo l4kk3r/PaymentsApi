@@ -47,7 +47,7 @@ export default class RenewJob implements IJob {
             await this._repository.updateSubscription(subscription)
 
             if (subscription.autoRenew == AutoRenewStatus.Failed) {
-                this.notifyAboutFailedSubscriptionRenew(subscription)
+                await this.notifyAboutFailedSubscriptionRenew(subscription)
             }
         })
 

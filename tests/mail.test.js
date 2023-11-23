@@ -40,7 +40,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
-require('dotenv').config();
 var inversify_config_1 = require("../src/di/inversify.config");
 var types_1 = require("../src/di/types");
 var luxon_1 = require("luxon");

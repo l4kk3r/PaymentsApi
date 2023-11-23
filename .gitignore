@@ -8,6 +8,8 @@
 
 # Build
 dist/
+*.test.js
+*.test.js.map
 
 # User-specific files
 *.rsuser

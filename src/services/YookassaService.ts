@@ -13,8 +13,9 @@ export default class YookassaService implements IYookassaService {
     private DEFAULT_CURRENCY = 'RUB'
     private AMOUNT_COEFFICIENT = 0.9
 
-    private readonly api: AxiosInstance
-    private readonly isAutoPaymentsEnabled: boolean
+    private readonly _api: AxiosInstance
+    private readonly _isAutoPaymentsEnabled: boolean
+    private readonly _fiscalEnabled: boolean
 
     private readonly _logger: ILogger
 
@@ -22,9 +23,10 @@ export default class YookassaService implements IYookassaService {
         const apiUrl = process.env.YOOKASSA_API_URL
         const shopId = process.env.YOOKASSA_SHOP_ID
         const shopSecret = process.env.YOOKASSA_SECRET_KEY
-        this.isAutoPaymentsEnabled = JSON.parse(process.env.AUTO_PAYMENTS)
+        this._isAutoPaymentsEnabled = JSON.parse(process.env.AUTO_PAYMENTS)
+        this._fiscalEnabled = JSON.parse(process.env.FISCAL_ENABLED)
 
-        this.api = axios.create({
+        this._api = axios.create({
             baseURL: apiUrl,
             headers: {
                 'Authorization': `Basic ${Buffer.from(shopId + ':' + shopSecret).toString('base64')}`
@@ -45,7 +47,7 @@ export default class YookassaService implements IYookassaService {
                 capture: true
             }
 
-            const result = await this.api.post("", payment, {
+            const result = await this._api.post("", payment, {
                 headers: {
                     'Idempotence-Key': randomUUID()
                 }
@@ -76,10 +78,14 @@ export default class YookassaService implements IYookassaService {
                 return_url: returnUrl
             },
             capture: true,
-            save_payment_method: this.isAutoPaymentsEnabled
+            save_payment_method: this._isAutoPaymentsEnabled
         }
 
-        const result = await this.api.post("", payment, {
+/*        if (this._fiscalEnabled) {
+            payment.
+        }*/
+
+        const result = await this._api.post("", payment, {
             headers: {
                 'Idempotence-Key': randomUUID()
             }

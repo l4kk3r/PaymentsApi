@@ -30,6 +30,8 @@ import IJob from "../jobs/interfaces/IJob";
 import RenewJob from "../jobs/RenewJob";
 import ILoggerFactory from "../infrastructure/interfaces/ILoggerFactory";
 import LoggerFactory from "../infrastructure/LoggerFactory";
+import ICrmService from "../services/interfaces/ICrmService";
+import ExcelService from "../services/ExcelService";
 
 const container = new Container()
 
@@ -43,7 +45,7 @@ container.bind<IConfigService>(TYPES.ConfigService).to(ConfigService)
 container.bind<IMessageBroker>(TYPES.MessageBroker).to(MessageBroker).inSingletonScope()
 container.bind<IRepository>(TYPES.Repository).to(Repository).inSingletonScope()
 container.bind<IEmailService>(TYPES.EmailService).to(NodemailerService).inSingletonScope()
+container.bind<ICrmService>(TYPES.CrmService).to(ExcelService).inSingletonScope()
 container.bind<IJob>(TYPES.RenewJob).to(RenewJob)
 container.bind<ILoggerFactory>(TYPES.LoggerFactory).to(LoggerFactory).inSingletonScope()
-
 export { container }

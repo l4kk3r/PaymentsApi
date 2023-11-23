@@ -22,6 +22,7 @@ import PaymentStatus from "../models/enums/PaymentStatus";
 import AutoRenewStatus from "../models/enums/AutoRenewStatus";
 import ILogger from "../infrastructure/interfaces/ILogger";
 import ILoggerFactory from "../infrastructure/interfaces/ILoggerFactory";
+import ICrmService from "./interfaces/ICrmService";
 
 @injectable()
 export default class PaymentService implements IPaymentService {
@@ -33,6 +34,7 @@ export default class PaymentService implements IPaymentService {
     @inject(TYPES.SubscriptionService) private _subscriptionService: ISubscriptionService
     @inject(TYPES.EmailService) private _emailService: IEmailService
     @inject(TYPES.MessageBroker) private _messageBroker: IMessageBroker
+    @inject(TYPES.CrmService) private _crmService: ICrmService
     private readonly _logger: ILogger
 
     constructor(@inject(TYPES.LoggerFactory) loggerFactory: ILoggerFactory) {
@@ -108,6 +110,11 @@ export default class PaymentService implements IPaymentService {
 
         await this._repository.updatePaymentAndSubscription(payment, subscription, paymentDetailsModel)
         await this.notifyAboutSubscription(subscription, payment.type)
+
+        if (payment.type == PaymentType.New)
+            await this._crmService.writeSubscription(subscription)
+        else
+            await this._crmService.updateSubscription(subscription)
     }
 
     public async autoRenewSubscription(subscription: Subscription) {
