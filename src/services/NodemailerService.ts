@@ -112,7 +112,7 @@ export default class NodemailerService implements IEmailService {
     }
 
     async sendSubscriptionCancellationConfirmation(email: string, subscriptionsLeftCount: number): Promise<void> {
-        const text = `Автопродление успешно отменено\n${subscriptionsLeftCount ? 'Твоих подписок с автопродлением: ' + subscriptionsLeftCount : 'У тебя не осталось подписок с автопродлением\n\nБудем ждать тебя в безопасном интернете без ограничений!'}`
+        const text = `Автопродление успешно отменено\n${subscriptionsLeftCount ? 'Осталось твоих подписок с автопродлением: ' + subscriptionsLeftCount : 'У тебя не осталось подписок с автопродлением\n\nБудем ждать тебя в безопасном интернете без ограничений!'}`
 
         const message = {
             from: this.messageHeader,
@@ -128,13 +128,13 @@ export default class NodemailerService implements IEmailService {
     }
 
     private generateHtml(text: string) {
-        const formattedText = text.replace('\n', '<br />')
+        const formattedText = text.replace(/\n/g, '<br />')
 
         return `<div style="padding: 10px;">
                     <img src="${this.emailLogo}" alt="logo" width="180"/>
                     <h3 style="font-weight: 500;margin-bottom: 50px;">${formattedText}</h3>
-                    <a href="${this.siteUrl}" target="_blank" style="background: ${this.emailMainColor};padding: 10px 20px;margin-right: 20px;border-radius: 10px;font-weight: 500;color: #fff;border: none;text-decoration: none;outline: none">Перейти на сайт</a>
-                    <a href="${this.telegramBotUrl}" target="_blank" style="background: ${this.emailMainColor};padding: 10px 20px;margin-right: 20px;border-radius: 10px;color: #fff;border: none;text-decoration: none;outline: none">Перейти в телеграм бота</a>
+                    <a href="${this.siteUrl}" target="_blank" style="background: ${this.emailMainColor};padding: 10px 0;display: block;margin-bottom: 20px;border-radius: 10px;text-align: center;font-weight: 500;color: #fff;border: none;text-decoration: none;outline: none">Перейти на сайт</a>
+                    <a href="${this.telegramBotUrl}" target="_blank" style="background: ${this.emailMainColor};padding: 10px 0;display: block;border-radius: 10px;text-align: center;font-weight: 500;color: #fff;border: none;text-decoration: none;outline: none">Перейти в телеграм бота</a>
                 </div>`
     }
 }

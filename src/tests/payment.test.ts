@@ -84,7 +84,7 @@ describe('Payment service tests', () => {
 
     it('Confirm payment with new subscription and saved payment method', async () => {
         // Arrange
-        const user = await createUser()
+        const user = await getOrCreateUserWithEmail('timvaulin256@yandex.ru')
         const payment = await createPayment(user, PaymentType.New)
         const secret = randomUUID()
         const paymentParameters = createPaymentParameters(payment, secret)
@@ -270,7 +270,7 @@ const createPaymentDetails = async (user: User, secret: string) => {
 const getUserSubscription = async (user: User) => {
     const pool = container.get<Pool>(TYPES.DatabasePool)
     const result = await pool.query(
-        'SELECT id FROM subscriptions WHERE user_id=$1 LIMIT 1',
+        'SELECT id FROM subscriptions WHERE user_id=$1 ORDER BY id DESC LIMIT 1',
         [user.id]
     )
 
