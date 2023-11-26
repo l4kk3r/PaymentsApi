@@ -4,7 +4,6 @@ import ICrmService from "./interfaces/ICrmService";
 import {inject, injectable} from "inversify";
 import Subscription from "../models/Subscription";
 import {TYPES} from "../di/types";
-import GetPlanById from "../utils/GetPlanById";
 import Repository from "../infrastructure/Repository";
 
 @injectable()
@@ -34,7 +33,7 @@ export default class ExcelService implements ICrmService {
         const codeRow = worksheet.rowCount
 
         const user = await this._repository.getUserById(subscription.userId)
-        const plan = GetPlanById(subscription.planId)
+        const plan = subscription.plan
         const startDate = subscription.startAt
         const endDate = subscription.endAt
 
@@ -66,7 +65,7 @@ export default class ExcelService implements ICrmService {
 
         for (let row of rows) {
             if (row.get('Номер подписки') == subscription.id) {
-                const plan = GetPlanById(subscription.planId)
+                const plan = subscription.plan
                 const endDate = subscription.endAt
 
                 row.assign({

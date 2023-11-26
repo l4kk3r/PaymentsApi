@@ -11,6 +11,7 @@ import "../controllers/PaymentController";
 import "../controllers/BillingController"
 import "../controllers/KeyController"
 import "../controllers/StatusController"
+import "../controllers/SubscriptionController"
 
 import databasePool from "./databasePool";
 import {Pool} from "pg";
@@ -32,6 +33,10 @@ import ILoggerFactory from "../infrastructure/interfaces/ILoggerFactory";
 import LoggerFactory from "../infrastructure/LoggerFactory";
 import ICrmService from "../services/interfaces/ICrmService";
 import ExcelService from "../services/ExcelService";
+import IEncryptionService from "../services/interfaces/IEncryptionService";
+import EncryptionService from "../services/EncryptionService";
+import CachedRepository from "../infrastructure/CachedRepository";
+import ICachedRepository from "../infrastructure/interfaces/ICachedRepository";
 
 const container = new Container()
 
@@ -42,10 +47,15 @@ container.bind<IPaymentService>(TYPES.PaymentService).to(PaymentService)
 container.bind<ISubscriptionService>(TYPES.SubscriptionService).to(SubscriptionService)
 container.bind<IServerService>(TYPES.ServerService).to(ServerService)
 container.bind<IConfigService>(TYPES.ConfigService).to(ConfigService)
-container.bind<IMessageBroker>(TYPES.MessageBroker).to(MessageBroker).inSingletonScope()
-container.bind<IRepository>(TYPES.Repository).to(Repository).inSingletonScope()
 container.bind<IEmailService>(TYPES.EmailService).to(NodemailerService).inSingletonScope()
 container.bind<ICrmService>(TYPES.CrmService).to(ExcelService).inSingletonScope()
+container.bind<IEncryptionService>(TYPES.EncryptionService).to(EncryptionService)
+
+container.bind<IMessageBroker>(TYPES.MessageBroker).to(MessageBroker).inSingletonScope()
+container.bind<IRepository>(TYPES.Repository).to(Repository)
+container.bind<ICachedRepository>(TYPES.CachedRepository).to(CachedRepository).inSingletonScope()
+
 container.bind<IJob>(TYPES.RenewJob).to(RenewJob)
 container.bind<ILoggerFactory>(TYPES.LoggerFactory).to(LoggerFactory).inSingletonScope()
+
 export { container }

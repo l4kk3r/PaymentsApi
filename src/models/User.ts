@@ -4,7 +4,7 @@ export default class User {
         public readonly telegramId: number,
         public readonly username: string,
         public readonly source?: string,
-        public readonly email?: string,
+        public email?: string,
         public readonly refId?: number
     ) { }
 

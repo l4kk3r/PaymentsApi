@@ -2,7 +2,11 @@ import Subscription from "../../models/Subscription";
 import PaymentType from "../../models/enums/PaymentType";
 
 export default interface IEmailService {
-    notifyAboutSubscription(email: string, subscription: Subscription, paymentType: PaymentType): Promise<void>
+    sendSubscription(email: string, subscription: Subscription, paymentType: PaymentType): Promise<void>
 
-    notifyAboutFailedRenew(email: string, subscription: Subscription): Promise<void>
+    sendFailedRenew(email: string, subscription: Subscription): Promise<void>
+
+    sendSubscriptionCancellationRequest(email: string, cancellationLink: string): Promise<void>
+
+    sendSubscriptionCancellationConfirmation(email: string, subscriptionsLeftCount: number): Promise<void>
 }

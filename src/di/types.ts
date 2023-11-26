@@ -7,10 +7,12 @@ const TYPES = {
     ServerService: Symbol.for("ServerService"),
     ConfigService: Symbol.for("ConfigService"),
     Repository: Symbol.for("Repository"),
+    CachedRepository: Symbol.for("CachedRepository"),
     EmailService: Symbol.for("EmailService"),
+    CrmService: Symbol.for('CrmService'),
+    EncryptionService: Symbol.for('EncryptionService'),
     RenewJob: Symbol.for("RenewJob"),
-    LoggerFactory: Symbol.for('LoggerFactory'),
-    CrmService: Symbol.for('CrmService')
+    LoggerFactory: Symbol.for('LoggerFactory')
 }
 
 export { TYPES };

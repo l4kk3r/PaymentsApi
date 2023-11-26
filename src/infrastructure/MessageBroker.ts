@@ -21,7 +21,7 @@ export default class MessageBroker implements IMessageBroker {
     private readonly _logger: ILogger
 
     constructor(@inject(TYPES.LoggerFactory) loggerFactory: ILoggerFactory) {
-        this._logger = loggerFactory.create("renew-job")
+        this._logger = loggerFactory.create("message-broker")
         const url = process.env.RABBITMQ_URL
 
         this.createChannel(url)

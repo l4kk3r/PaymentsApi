@@ -1,11 +1,12 @@
 import {DateTime} from "luxon";
 import AutoRenewStatus from "./enums/AutoRenewStatus";
+import PlanV2 from "./PlanV2";
 
 export default class Subscription {
     constructor (
         public id: number,
         public readonly userId: number,
-        public planId: string,
+        public plan: PlanV2,
         public readonly startAt: DateTime,
         public endAt: DateTime,
         public readonly isTest: boolean,

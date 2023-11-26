@@ -9,7 +9,6 @@ import IRepository from "../infrastructure/interfaces/IRepository";
 import User from "../models/User";
 import PaymentMessage from "../models/messages/PaymentMessage";
 import Payment from "../models/Payment";
-import GetPlanById from "../utils/GetPlanById";
 import ConfirmPaymentParameters from "./parameters/ConfirmPaymentParameters";
 import {DateTime} from "luxon";
 import Subscription from "../models/Subscription";
@@ -23,11 +22,14 @@ import AutoRenewStatus from "../models/enums/AutoRenewStatus";
 import ILogger from "../infrastructure/interfaces/ILogger";
 import ILoggerFactory from "../infrastructure/interfaces/ILoggerFactory";
 import ICrmService from "./interfaces/ICrmService";
+import FiscalData from "./parameters/FiscalData";
+import ICachedRepository from "../infrastructure/interfaces/ICachedRepository";
+import PlanV2 from "../models/PlanV2";
 
 @injectable()
 export default class PaymentService implements IPaymentService {
     private DEFAULT_EMAIL_SOURCE = 'website'
-    private DEFAULT_AUTO_RENEW_PLAN = GetPlanById('ok_vpn_1_month')
+    private DEFAULT_AUTO_RENEW_PLAN_ID = 'ok_vpn_1_month'
 
     @inject(TYPES.YookassaService) private _yookassaService: IBillingService
     @inject(TYPES.Repository) private _repository: IRepository
@@ -36,8 +38,11 @@ export default class PaymentService implements IPaymentService {
     @inject(TYPES.MessageBroker) private _messageBroker: IMessageBroker
     @inject(TYPES.CrmService) private _crmService: ICrmService
     private readonly _logger: ILogger
+    private readonly _defaultAutoRenewPlan: PlanV2
 
-    constructor(@inject(TYPES.LoggerFactory) loggerFactory: ILoggerFactory) {
+    constructor(@inject(TYPES.CachedRepository) private _cachedRepository: ICachedRepository,
+                @inject(TYPES.LoggerFactory) loggerFactory: ILoggerFactory) {
+        this._defaultAutoRenewPlan = _cachedRepository.getPlanById(this.DEFAULT_AUTO_RENEW_PLAN_ID)
         this._logger = loggerFactory.create("payment-service")
     }
 
@@ -46,14 +51,20 @@ export default class PaymentService implements IPaymentService {
 
         const provider = this.getProviderFromPaymentMethod(paymentMethod)
 
-        const plan = GetPlanById(planId)
+        const plan = this._cachedRepository.getPlanById(planId)
         if (plan == null)
             throw new DomainError("Incorrect plan")
 
         const paymentType = subscriptionId ? PaymentType.Renew : PaymentType.New
-        const payment = new Payment(0, plan.price, userId, subscriptionId, planId, paymentType)
+        const payment = new Payment(0, plan.price, userId, subscriptionId, plan, paymentType)
         await this._repository.createPayment(payment)
-        const link = await provider.generateLink(plan.price, payment.id, returnUrl)
+
+        const user = await this._repository.getUserById(userId)
+        const fiscalData = {
+            email: user.email ? user.email : user.telegramId ? `${user.telegramId}@telegram.com` : 'support@okvpn.io',
+            description: `Подписка на ${plan.name}`
+        } as FiscalData
+        const link = await provider.generateLink(plan.price, payment.id, returnUrl, fiscalData)
 
         return { id: payment.id, link }
     }
@@ -61,7 +72,7 @@ export default class PaymentService implements IPaymentService {
     async generatePaymentFromEmail(parameters: GenerateLinkFromEmailParameters): Promise<string> {
         const { planId, paymentMethod, email, returnUrl } = parameters
 
-        const plan = GetPlanById(planId)
+        const plan = this._cachedRepository.getPlanById(planId)
         if (plan == null)
             throw new DomainError("Incorrect plan")
 
@@ -73,10 +84,14 @@ export default class PaymentService implements IPaymentService {
             await this._repository.createUser(user)
         }
 
-        const payment = new Payment(0, plan.price, user.id, null, planId, PaymentType.New)
+        const payment = new Payment(0, plan.price, user.id, null, plan, PaymentType.New)
         await this._repository.createPayment(payment)
 
-        return await provider.generateLink(plan.price, payment.id, returnUrl)
+        const fiscalData = {
+            email,
+            description: `Подписка на ${plan.name}`
+        } as FiscalData
+        return await provider.generateLink(plan.price, payment.id, returnUrl, fiscalData)
     }
 
     async confirmPayment(parameters: ConfirmPaymentParameters): Promise<void> {
@@ -96,7 +111,7 @@ export default class PaymentService implements IPaymentService {
         payment.status = PaymentStatus.Paid
         payment.paidAt = DateTime.utc()
 
-        const plan = GetPlanById(payment.planId)
+        const plan = payment.plan
 
         const subscription = payment.type == PaymentType.New
             ? await this._subscriptionService.createSubscription(payment.userId, plan)
@@ -124,14 +139,14 @@ export default class PaymentService implements IPaymentService {
             return false
 
         const provider = this.getProviderFromPaymentMethod(userPaymentDetails.billingProvider)
-        const amount = this.DEFAULT_AUTO_RENEW_PLAN.price
+        const amount = this._defaultAutoRenewPlan.price
         const success = await provider.makeAutoPayment(userPaymentDetails.secret, amount)
 
         const status = success ? PaymentStatus.Paid : PaymentStatus.Failed
-        const payment = new Payment(0, amount, userId, subscription.id, this.DEFAULT_AUTO_RENEW_PLAN.id, PaymentType.AutoRenew, status, DateTime.utc(), DateTime.utc())
+        const payment = new Payment(0, amount, userId, subscription.id, this._defaultAutoRenewPlan, PaymentType.AutoRenew, status, DateTime.utc(), DateTime.utc())
 
         if (success) {
-            const renewedSubscription = await this._subscriptionService.renewSubscription(subscription.id, this.DEFAULT_AUTO_RENEW_PLAN)
+            const renewedSubscription = await this._subscriptionService.renewSubscription(subscription.id, this._defaultAutoRenewPlan)
             await this._repository.updatePaymentAndSubscription(payment, renewedSubscription)
             await this.notifyAboutSubscription(subscription, payment.type)
             this._logger.info(`Auto payment succeeded for user #${userId}`)
@@ -158,7 +173,7 @@ export default class PaymentService implements IPaymentService {
         this._messageBroker.notify(paymentMessage)
 
         if (user.email != null) {
-            await this._emailService.notifyAboutSubscription(user.email, subscription, paymentType)
+            await this._emailService.sendSubscription(user.email, subscription, paymentType)
         }
     }
 }

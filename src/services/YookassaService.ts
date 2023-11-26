@@ -7,11 +7,13 @@ import {TYPES} from "../di/types";
 import IMessageBroker from "../infrastructure/interfaces/IMessageBroker";
 import ILogger from "../infrastructure/interfaces/ILogger";
 import ILoggerFactory from "../infrastructure/interfaces/ILoggerFactory";
+import FiscalData from "./parameters/FiscalData";
 
 @injectable()
 export default class YookassaService implements IYookassaService {
     private DEFAULT_CURRENCY = 'RUB'
     private AMOUNT_COEFFICIENT = 0.9
+    private VAT_CODE = '1'
 
     private readonly _api: AxiosInstance
     private readonly _isAutoPaymentsEnabled: boolean
@@ -23,7 +25,7 @@ export default class YookassaService implements IYookassaService {
         const apiUrl = process.env.YOOKASSA_API_URL
         const shopId = process.env.YOOKASSA_SHOP_ID
         const shopSecret = process.env.YOOKASSA_SECRET_KEY
-        this._isAutoPaymentsEnabled = JSON.parse(process.env.AUTO_PAYMENTS)
+        this._isAutoPaymentsEnabled = JSON.parse(process.env.AUTO_PAYMENTS_ENABLED)
         this._fiscalEnabled = JSON.parse(process.env.FISCAL_ENABLED)
 
         this._api = axios.create({
@@ -64,12 +66,14 @@ export default class YookassaService implements IYookassaService {
         }
     }
 
-    async generateLink(amount: number, paymentId: number, returnUrl: string): Promise<string> {
+    async generateLink(amount: number, paymentId: number, returnUrl: string, fiscalData: FiscalData): Promise<string> {
+        const formattedAmount = {
+            currency: this.DEFAULT_CURRENCY,
+            value: amount
+        }
+
         const payment = {
-            amount: {
-                currency: this.DEFAULT_CURRENCY,
-                value: amount
-            },
+            amount: formattedAmount,
             metadata: {
                 paymentId
             },
@@ -78,12 +82,26 @@ export default class YookassaService implements IYookassaService {
                 return_url: returnUrl
             },
             capture: true,
-            save_payment_method: this._isAutoPaymentsEnabled
+            save_payment_method: this._isAutoPaymentsEnabled,
+            receipt: null
         }
 
-/*        if (this._fiscalEnabled) {
-            payment.
-        }*/
+        if (this._fiscalEnabled) {
+            const customer = {
+                email: fiscalData.email
+            }
+            const items = [{
+                description: fiscalData.description,
+                amount: formattedAmount,
+                vat_code: this.VAT_CODE,
+                quantity: 1
+            }];
+
+            payment.receipt = {
+                customer,
+                items
+            }
+        }
 
         const result = await this._api.post("", payment, {
             headers: {

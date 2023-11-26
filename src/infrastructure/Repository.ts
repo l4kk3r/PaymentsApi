@@ -1,6 +1,6 @@
 import IRepository from "./interfaces/IRepository";
 import Config from "../models/Config";
-import {inject, injectable} from "inversify";
+import {id, inject, injectable} from "inversify";
 import {TYPES} from "../di/types";
 import {Pool, PoolClient, types} from "pg";
 import Subscription from "../models/Subscription";
@@ -11,12 +11,17 @@ import PaymentDetails from "../models/PaymentDetails";
 import PaymentType from "../models/enums/PaymentType";
 import PaymentStatus from "../models/enums/PaymentStatus";
 import AutoRenewStatus from "../models/enums/AutoRenewStatus";
+import paymentStatus from "../models/enums/PaymentStatus";
+import paymentType from "../models/enums/PaymentType";
+import e from "express";
+import CachedRepository from "./CachedRepository";
 
 @injectable()
 export default class Repository implements IRepository {
     DateTimeWithoutTimestampParser = 1114;
 
     @inject(TYPES.DatabasePool) protected _dbPool: Pool
+    @inject(TYPES.CachedRepository) protected _cachedRepository: CachedRepository
 
     constructor() {
         types.setTypeParser(this.DateTimeWithoutTimestampParser, function (stringValue) {
@@ -37,10 +42,10 @@ export default class Repository implements IRepository {
     async createPayment(payment: Payment, client?: PoolClient | Pool): Promise<void> {
         client ??= this._dbPool
 
-        const { amount, userId, entityId, planId, type, status, createdAt } = payment
+        const { amount, userId, entityId, plan, type, status, createdAt } = payment
         const result = await client.query(
             'INSERT INTO payments (amount, user_id, entity_id, plan_id, type, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-            [amount, userId, entityId, planId, type, status, createdAt]
+            [amount, userId, entityId, plan.id, type, status, createdAt]
         )
 
         payment.id = result.rows[0].id as number
@@ -115,10 +120,37 @@ export default class Repository implements IRepository {
         client ??= this._dbPool
         const result = await client.query(
             'INSERT INTO subscriptions (user_id, plan_id, start_at, end_at, is_test, identifier, auto_renew) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-            [subscription.userId, subscription.planId, subscription.startAt.toSQL(), subscription.endAt.toSQL(), subscription.isTest, subscription.identifier, subscription.autoRenew]
+            [subscription.userId, subscription.plan.id, subscription.startAt.toSQL(), subscription.endAt.toSQL(), subscription.isTest, subscription.identifier, subscription.autoRenew]
         )
         subscription.id = Number(result.rows[0].id)
     }
+
+    async getOldestActiveSubscriptionWithAutoRenewByUserId(userId: number): Promise<Subscription> {
+        const result = await this._dbPool.query(
+            'SELECT * FROM subscriptions WHERE user_id=$1 AND end_at > current_timestamp AND auto_renew=\'enabled\' ORDER BY end_at LIMIT 1',
+            [userId]
+        )
+        const data = result.rows[0]
+
+        return this.mapSubscription(data);
+    }
+
+    async setSubscriptionAutoRenewStatus(id: number, status: AutoRenewStatus): Promise<void> {
+        await this._dbPool.query(
+            'UPDATE subscriptions SET auto_renew=$1 WHERE id=$2',
+            [status, id]
+        )
+    }
+
+    async countActiveSubscriptionsWithAutoRenewByUserId(userId: number): Promise<number> {
+        const result = await this._dbPool.query(
+            'SELECT COUNT(*) FROM subscriptions WHERE user_id=$1 AND end_at > current_timestamp AND auto_renew=\'enabled\'',
+            [userId]
+        )
+
+        return result.rows.length
+    }
+
 
     async deleteNotificationsBySubscriptionId(subscriptionId: number, client?: PoolClient | Pool): Promise<void> {
         client ??= this._dbPool
@@ -177,7 +209,7 @@ export default class Repository implements IRepository {
     async updateSubscription(subscription: Subscription, client?: PoolClient | Pool): Promise<void> {
         client ??= this._dbPool
         await client.query('UPDATE subscriptions SET end_at=$1, plan_id=$2, auto_renew=$3 WHERE id=$4',
-            [subscription.endAt, subscription.planId, subscription.autoRenew, subscription.id])
+            [subscription.endAt, subscription.plan.id, subscription.autoRenew, subscription.id])
     }
 
     async createPaymentDetails(paymentDetails: PaymentDetails, client?: PoolClient | Pool): Promise<void> {
@@ -243,10 +275,11 @@ export default class Repository implements IRepository {
     private mapSubscription(data: any) : Subscription {
         if (!data) return null;
 
+        const plan = this._cachedRepository.getPlanById(data.plan_id)
         return new Subscription(
             data.id,
             data.user_id,
-            data.plan_id,
+            plan,
             data.start_at,
             data.end_at,
             data.is_test,
@@ -281,12 +314,13 @@ export default class Repository implements IRepository {
     private mapPayment(data: any) : Payment {
         if (!data) return null;
 
+        const plan = this._cachedRepository.getPlanById(data.plan_id)
         return new Payment(
             data.id,
             data.amount,
             data.user_id,
             data.entity_id,
-            data.plan_id,
+            plan,
             data.type as PaymentType,
             data.status as PaymentStatus,
             data.created_at,

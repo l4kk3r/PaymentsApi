@@ -1,8 +1,8 @@
 import Subscription from "../models/Subscription";
 
-const KEY_HOST = process.env.KEYS_HOST
+const API_HOST = process.env.API_HOST
 
 export default (subscription: Subscription) => {
-    return `ssconf://${KEY_HOST}/key/${subscription.identifier}`
+    return `ssconf://${API_HOST}/key/${subscription.identifier}`
 }
 

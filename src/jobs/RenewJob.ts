@@ -59,7 +59,7 @@ export default class RenewJob implements IJob {
     private async notifyAboutFailedSubscriptionRenew(subscription: Subscription) {
         const user = await this._repository.getUserById(subscription.userId)
         if (user.email)
-            await this._emailService.notifyAboutFailedRenew(user.email, subscription)
+            await this._emailService.sendFailedRenew(user.email, subscription)
 
         const message = new FailedSubscriptionAutoRenewMessage(subscription.id)
         this._messageBroker.notify(message)

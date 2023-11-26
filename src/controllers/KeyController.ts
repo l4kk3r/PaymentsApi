@@ -3,7 +3,7 @@ import {NextFunction, Request, Response} from "express";
 import {inject} from "inversify";
 import {TYPES} from "../di/types";
 import IConfigService from "../services/interfaces/IConfigService";
-import DomainError from "../errors/DomainError";
+import GetKeyRequest from "../requests/GetKeyRequest";
 
 @controller('/key')
 export class KeyController implements Controller {
@@ -11,7 +11,7 @@ export class KeyController implements Controller {
 
     @httpGet('/:identifier')
     private async generate(
-        @request() request: Request,
+        @request() request: GetKeyRequest,
         @response() response: Response,
         @next() next: NextFunction)
     {

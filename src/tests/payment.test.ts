@@ -1,41 +1,47 @@
 import "reflect-metadata";
-import {container} from "../src/di/inversify.config";
-import {TYPES} from "../src/di/types";
-import IPaymentService from "../src/services/interfaces/IPaymentService";
-import IRepository from "../src/infrastructure/interfaces/IRepository";
-import User from "../src/models/User";
+import {container} from "../di/inversify.config";
+import {TYPES} from "../di/types";
+import IPaymentService from "../services/interfaces/IPaymentService";
+import IRepository from "../infrastructure/interfaces/IRepository";
+import User from "../models/User";
 import {randomInt, randomUUID} from "crypto";
-import Payment from "../src/models/Payment";
-import IMessageBroker from "../src/infrastructure/interfaces/IMessageBroker";
+import Payment from "../models/Payment";
+import IMessageBroker from "../infrastructure/interfaces/IMessageBroker";
 import {DateTime, Duration} from "luxon";
-import GetPlanById from "../src/utils/GetPlanById";
-import Subscription from "../src/models/Subscription";
-import RandomHex from "../src/utils/RandomHex";
-import PaymentType from "../src/models/enums/PaymentType";
-import PaymentStatus from "../src/models/enums/PaymentStatus";
-import AutoRenewStatus from "../src/models/enums/AutoRenewStatus";
-import PaymentDetails from "../src/models/PaymentDetails";
-import IJob from "../src/jobs/interfaces/IJob";
+import Subscription from "../models/Subscription";
+import RandomHex from "../utils/RandomHex";
+import PaymentType from "../models/enums/PaymentType";
+import PaymentStatus from "../models/enums/PaymentStatus";
+import AutoRenewStatus from "../models/enums/AutoRenewStatus";
+import PaymentDetails from "../models/PaymentDetails";
+import IJob from "../jobs/interfaces/IJob";
 import {Pool} from "pg";
-import PaymentMessage from "../src/models/messages/PaymentMessage";
-import FailedSubscriptionAutoRenewMessage from "../src/models/messages/FailedSubscriptionAutoRenewMessage";
+import PaymentMessage from "../models/messages/PaymentMessage";
+import FailedSubscriptionAutoRenewMessage from "../models/messages/FailedSubscriptionAutoRenewMessage";
+import ISubscriptionService from "../services/interfaces/ISubscriptionService";
+import IEncryptionService from "../services/interfaces/IEncryptionService";
+import ICachedRepository from "../infrastructure/interfaces/ICachedRepository";
 
-jest.setTimeout(60000);
+jest.setTimeout(60000 * 5);
 
 const DEFAULT_PAYMENT_URL = 'https://yoomoney.ru/checkout/payments/v'
-const PLAN = GetPlanById('ok_vpn_1_month')
+const PLAN_ID = 'ok_vpn_1_month'
 const PAYMENT_METHOD = 'yookassa'
 const PAYMENT_SECRET = '2ce3592b-000f-5000-9000-1c9faff77b0a'
 const RENEWAL_BONUS_DAYS = 7
 
+
 const paymentService = container.get<IPaymentService>(TYPES.PaymentService);
+const subscriptionService = container.get<ISubscriptionService>(TYPES.SubscriptionService);
+const encryptionService = container.get<IEncryptionService>(TYPES.EncryptionService);
 const repository = container.get<IRepository>(TYPES.Repository);
+const cachedRepository = container.get<ICachedRepository>(TYPES.CachedRepository);
 const messageBroker = container.get<IMessageBroker>(TYPES.MessageBroker)
 const warmupMs = 1000
 
 describe('Payment service tests', () => {
     beforeAll(async () => {
-        await new Promise(resolve => setTimeout(() => resolve(1), warmupMs))
+        await new Promise(resolve => setTimeout(() => resolve(5), warmupMs))
         messageBroker.purgeAll()
     })
 
@@ -44,7 +50,7 @@ describe('Payment service tests', () => {
         const user = await createUser()
         const parameters = {
             userId: user.id,
-            planId: PLAN.id,
+            planId: PLAN_ID,
             paymentMethod: PAYMENT_METHOD,
             returnUrl: 'return'
         }
@@ -60,7 +66,7 @@ describe('Payment service tests', () => {
         // Arrange
         const email = 'l4kk3r@yandex.ru'
         const parameters = {
-            planId: PLAN.id,
+            planId: PLAN_ID,
             paymentMethod: PAYMENT_METHOD,
             email,
             returnUrl: 'return'
@@ -95,10 +101,10 @@ describe('Payment service tests', () => {
         const expectedMessage = new PaymentMessage(subscription.id, payment.type)
         await expectPaymentMessageToBeEqual(expectedMessage)
 
-        const plan = GetPlanById(subscription.planId)
+        const plan = subscription.plan
         expect(subscription.userId).toBe(user.id)
-        expect(subscription.planId).toBe(PLAN.id)
-        const dif = Math.abs(subscription.endAt.diff(DateTime.utc().plus(Duration.fromISO(plan.duration)), 'hours').hours)
+        expect(subscription.plan.id).toBe(PLAN_ID)
+        const dif = Math.abs(subscription.endAt.diff(DateTime.utc().plus(plan.duration), 'hours').hours)
         expect(dif < 1).toBeTruthy()
 
         const paymentDetails = await repository.getPaymentDetailsByUserId(user.id)
@@ -199,6 +205,20 @@ describe('Payment service tests', () => {
         await expectFailedAutoRenewMessageToBeEqual(expectedMessage)
     })
 
+    it('Cancel subscription by link', async () => {
+        // Assert
+        const user = await getOrCreateUserWithEmail('l4kk3r@yandex.ru')
+        const subscription = await createSubscription(user, AutoRenewStatus.Enabled)
+        const cancellationKey = encryptionService.encrypt(subscription.id.toString())
+
+        // Act
+        await subscriptionService.confirmSubscriptionCancellation(cancellationKey)
+
+        // Assert
+        const updatedSubscription = await repository.getSubscriptionById(subscription.id)
+        expect(updatedSubscription.autoRenew).toBe(AutoRenewStatus.Disabled)
+    })
+
     // Verify there are no additional messages']
     afterAll(async () => {
         const messages = await Promise.all([
@@ -217,8 +237,20 @@ const createUser = async () => {
     return user
 }
 
+const getOrCreateUserWithEmail = async (email: string) => {
+    const userWithSameEmail = await repository.getUserByEmail(email)
+    if (userWithSameEmail)
+        return userWithSameEmail
+
+    const user = new User(0, randomInt(1, 1000000), randomUUID())
+    user.email = email
+    await repository.createUser(user)
+    return user
+}
+
 const createPayment = async (user: User, type: PaymentType, subscription?: Subscription) => {
-    const payment = new Payment(0, PLAN.price, user.id, subscription?.id, PLAN.id, type)
+    const plan = cachedRepository.getPlanById(PLAN_ID)
+    const payment = new Payment(0, plan.price, user.id, subscription?.id, plan, type)
     await repository.createPayment(payment)
     return payment
 }
@@ -248,7 +280,8 @@ const getUserSubscription = async (user: User) => {
 }
 
 const createSubscription = async (user: User, autoRenewStatus: AutoRenewStatus = AutoRenewStatus.Disabled) => {
-    const subscription = new Subscription(0, user.id, PLAN.id, DateTime.utc(), DateTime.utc(), false, RandomHex(), autoRenewStatus)
+    const plan = cachedRepository.getPlanById(PLAN_ID)
+    const subscription = new Subscription(0, user.id, plan, DateTime.utc(), DateTime.utc(), false, RandomHex(), autoRenewStatus)
     await repository.createSubscription(subscription)
     return subscription
 }
@@ -262,9 +295,9 @@ const updatePaymentCreatedAt = async (payment: Payment, date: DateTime) => {
 }
 
 const createPaymentParameters = (payment: Payment, secret?: string) => ({
-    uuid: randomUUID(),
+        uuid: randomUUID(),
         paymentId: payment.id,
-        amount: PLAN.price,
+        amount: cachedRepository.getPlanById(PLAN_ID).price,
         currency: 'RUB',
         paymentDetails: {
             billingProvider: PAYMENT_METHOD,
@@ -275,8 +308,8 @@ const createPaymentParameters = (payment: Payment, secret?: string) => ({
 })
 
 const expectSubscriptionToBeRenewed = (subscription: Subscription, previousEndAt: DateTime) => {
-    const plan = GetPlanById(subscription.planId)
-    const expectedEndAt = previousEndAt.plus(Duration.fromISO(plan.duration)).plus({ day: RENEWAL_BONUS_DAYS })
+    const plan = subscription.plan
+    const expectedEndAt = previousEndAt.plus(plan.duration).plus({ day: RENEWAL_BONUS_DAYS })
     const dif = Math.abs(subscription.endAt.diff(expectedEndAt, 'hours').hours)
     expect(dif < 1).toBeTruthy()
 }

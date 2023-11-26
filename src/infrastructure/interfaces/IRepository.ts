@@ -5,6 +5,7 @@ import Payment from "../../models/Payment";
 import PaymentDetails from "../../models/PaymentDetails";
 import PaymentStatus from "../../models/enums/PaymentStatus";
 import PaymentType from "../../models/enums/PaymentType";
+import AutoRenewStatus from "../../models/enums/AutoRenewStatus";
 
 export default interface IRepository {
     getSubscriptionByIdentifier(identifier: string): Promise<Subscription>
@@ -14,6 +15,12 @@ export default interface IRepository {
     getSubscriptionById(id: number): Promise<Subscription>
 
     getExpiredSubscriptions(allowedStatuses: string[]): Promise<Subscription[]>
+
+    getOldestActiveSubscriptionWithAutoRenewByUserId(userId: number): Promise<Subscription>
+
+    setSubscriptionAutoRenewStatus(id: number, status: AutoRenewStatus): Promise<void>
+
+    countActiveSubscriptionsWithAutoRenewByUserId(userId: number): Promise<number>
 
     createConfig(config: Config): Promise<void>
 
