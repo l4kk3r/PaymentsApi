@@ -11,14 +11,8 @@ export default class ConfigService implements IConfigService {
     @inject(TYPES.Repository) private _repository: IRepository
 
     async getKeyByIdentifier(identifier: string): Promise<string> {
-        const subscription = await this._repository.getSubscriptionByIdentifier(identifier);
-        if (!subscription || subscription.isExpired()) {
-            return "";
-        }
-
         const serverIp = this._serverService.getRandomActiveServer()
-        const config = await this._repository.getSubscriptionConfig(subscription.id, serverIp)
-            || await this.generateConfig(subscription.id, serverIp);
+        const config = await this._repository.getSubscriptionConfig(0, serverIp);
 
         return config.data;
     }
