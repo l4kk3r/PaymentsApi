@@ -23,12 +23,6 @@ export default class MessageBroker implements IMessageBroker {
     constructor(@inject(TYPES.LoggerFactory) loggerFactory: ILoggerFactory) {
         this._logger = loggerFactory.create("message-broker")
         const url = process.env.RABBITMQ_URL
-
-        this.createChannel(url)
-            .then(channel => {
-                this._logger.info("RabbitMQ connected")
-                this.channel = channel
-            })
     }
 
     private async createChannel(url: string): Promise<Channel> {
