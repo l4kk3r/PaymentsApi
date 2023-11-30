@@ -12,7 +12,7 @@ export default class CachedRepository implements ICachedRepository {
     private cachedPlans: PlanV2[] = []
 
     constructor(@inject(TYPES.DatabasePool) protected _dbPool: Pool) {
-        this.updatePlansIfNeeded()
+        // this.updatePlansIfNeeded()
     }
 
     getPlans(): PlanV2[] {
